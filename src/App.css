@@ -79,6 +79,11 @@ a {
   font-weight: 700;
 }
 
+.button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
 .button.primary {
   background: var(--text-h);
   border-color: var(--text-h);
@@ -106,12 +111,57 @@ a {
   max-width: 760px;
 }
 
+.muted {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .eyebrow {
   color: var(--accent);
   font-size: 13px;
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.filters {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.filters label {
+  color: var(--muted);
+  display: grid;
+  font-size: 13px;
+  font-weight: 700;
+  gap: 6px;
+}
+
+.filters input,
+.filters select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text-h);
+  font: inherit;
+  min-height: 40px;
+  padding: 0 10px;
+}
+
+.result-summary,
+.pagination,
+.edition-list {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.result-summary {
+  color: var(--muted);
+  font-size: 14px;
 }
 
 .nft-grid {
@@ -156,6 +206,62 @@ a {
 
 .detail-media {
   aspect-ratio: 1;
+}
+
+.state-message,
+.state-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+}
+
+.state-panel {
+  display: grid;
+  gap: 14px;
+}
+
+.state-panel.inline {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+
+.metadata-list {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin: 24px 0;
+}
+
+.metadata-list div {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 10px;
+}
+
+.metadata-list dt {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.metadata-list dd {
+  color: var(--text-h);
+  margin: 2px 0 0;
+}
+
+.edition-list {
+  justify-content: flex-start;
+  margin-bottom: 24px;
+}
+
+.edition-list span {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-h);
+  font-size: 14px;
+  padding: 6px 10px;
 }
 
 @media (max-width: 760px) {

@@ -13,7 +13,7 @@ function RootLayout() {
   return (
     <div className="app-shell">
       <header className="site-header">
-        <Link to="/" className="brand">
+        <Link to="/" search={defaultCatalogSearch} className="brand">
           NFT Market
         </Link>
         <nav className="site-nav" aria-label="Navegacao principal">
@@ -56,12 +56,19 @@ function NotFoundPage() {
       <p className="eyebrow">404</p>
       <h1>Rota nao encontrada</h1>
       <p>O endereco acessado nao existe neste marketplace.</p>
-      <Link to="/" className="button primary">
+      <Link to="/" search={defaultCatalogSearch} className="button primary">
         Voltar ao catalogo
       </Link>
     </section>
   )
 }
+
+const defaultCatalogSearch = {
+  availability: 'all',
+  sort: 'newest',
+  page: 1,
+  scenario: 'normal',
+} as const
 
 export const Route = createRootRoute({
   component: RootLayout,
