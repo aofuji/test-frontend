@@ -6,6 +6,5 @@ function ProtectedLayout() {
 
 export const Route = createFileRoute('/_protected')({
   component: ProtectedLayout,
-  // Futuro ponto de guarda:
-  // beforeLoad: ({ context }) => ensureAuthenticated(context.session),
+  beforeLoad: ({ context, location }) => context.auth.ensureSession(location),
 })

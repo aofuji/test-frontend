@@ -1,9 +1,70 @@
 import { delay, http, HttpResponse } from 'msw'
 
+import type { LoginRequest, RegisterRequest } from '@/api/types/auth'
 import type { NftListParams } from '../api/types/nft'
 import { findNftById, listNfts, parseMockScenario } from './apiState'
+import {
+  getCurrentProfile,
+  getCurrentSession,
+  loginUser,
+  logoutUser,
+  registerUser,
+  resetAuthState,
+} from './authState'
 
 export const handlers = [
+  http.post('/api/auth/register', async ({ request }) => {
+    const result = registerUser((await request.json()) as RegisterRequest)
+
+    if (!result.ok) {
+      return HttpResponse.json(result.error, { status: result.status })
+    }
+
+    return HttpResponse.json({ session: result.data }, { status: 201 })
+  }),
+
+  http.post('/api/auth/login', async ({ request }) => {
+    const result = loginUser((await request.json()) as LoginRequest)
+
+    if (!result.ok) {
+      return HttpResponse.json(result.error, { status: result.status })
+    }
+
+    return HttpResponse.json({ session: result.data })
+  }),
+
+  http.get('/api/auth/session', () => {
+    const result = getCurrentSession()
+
+    if (!result.ok) {
+      return HttpResponse.json(result.error, { status: result.status })
+    }
+
+    return HttpResponse.json(result.data)
+  }),
+
+  http.post('/api/auth/logout', () => {
+    logoutUser()
+
+    return HttpResponse.json({ ok: true })
+  }),
+
+  http.get('/api/profile', () => {
+    const result = getCurrentProfile()
+
+    if (!result.ok) {
+      return HttpResponse.json(result.error, { status: result.status })
+    }
+
+    return HttpResponse.json({ profile: result.data })
+  }),
+
+  http.post('/api/__mock/reset-auth', () => {
+    resetAuthState()
+
+    return HttpResponse.json({ ok: true })
+  }),
+
   http.get('/api/nfts', async ({ request }) => {
     const url = new URL(request.url)
     const scenario = parseMockScenario(url.searchParams.get('scenario'))

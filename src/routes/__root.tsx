@@ -1,7 +1,9 @@
-import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
-import { ShoppingBag, UserRound, WalletCards } from 'lucide-react'
+import { Link, Outlet, createRootRouteWithContext } from '@tanstack/react-router'
+import { LogOut, ShoppingBag, UserRound, WalletCards } from 'lucide-react'
 
+import { useLogout, useSession } from '@/api/hooks/useAuth'
 import { Button } from '@/components/ui/button'
+import type { RouterContext } from '@/router'
 import '../App.css'
 
 const navigationItems = [
@@ -12,6 +14,9 @@ const navigationItems = [
 ]
 
 function RootLayout() {
+  const sessionQuery = useSession()
+  const logoutMutation = useLogout()
+
   return (
     <div className="min-h-svh bg-background text-foreground">
       <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
@@ -45,18 +50,44 @@ function RootLayout() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Button asChild variant="outline">
-              <Link to="/login">
-                <UserRound aria-hidden="true" />
-                Login
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link to="/register">
-                <WalletCards aria-hidden="true" />
-                Cadastro
-              </Link>
-            </Button>
+            {sessionQuery.data ? (
+              <>
+                <span className="hidden max-w-40 truncate text-sm text-muted-foreground sm:inline">
+                  {sessionQuery.data.user.name}
+                </span>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={logoutMutation.isPending}
+                  onClick={() => {
+                    logoutMutation.mutate(undefined, {
+                      onSettled: () => {
+                        window.dispatchEvent(new Event('nft-marketplace:logout'))
+                        window.location.assign('/')
+                      },
+                    })
+                  }}
+                >
+                  <LogOut aria-hidden="true" />
+                  Sair
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button asChild variant="outline">
+                  <Link to="/login">
+                    <UserRound aria-hidden="true" />
+                    Login
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/register">
+                    <WalletCards aria-hidden="true" />
+                    Cadastro
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -105,7 +136,7 @@ const defaultCatalogSearch = {
   scenario: 'normal',
 } as const
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
   notFoundComponent: NotFoundPage,
 })

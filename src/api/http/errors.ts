@@ -8,12 +8,21 @@ export type ApiErrorPayload = {
 export class ApiError extends Error {
   readonly status?: number
   readonly code?: string
+  readonly fieldErrors?: Record<string, string>
 
-  constructor(message: string, options?: { status?: number; code?: string }) {
+  constructor(
+    message: string,
+    options?: {
+      status?: number
+      code?: string
+      fieldErrors?: Record<string, string>
+    },
+  ) {
     super(message)
     this.name = 'ApiError'
     this.status = options?.status
     this.code = options?.code
+    this.fieldErrors = options?.fieldErrors
   }
 }
 
@@ -48,5 +57,9 @@ function fromAxiosError(error: AxiosError<ApiErrorPayload>) {
   return new ApiError(message, {
     status,
     code: payload?.code ?? error.code,
+    fieldErrors:
+      payload && 'fieldErrors' in payload
+        ? (payload.fieldErrors as Record<string, string>)
+        : undefined,
   })
 }
