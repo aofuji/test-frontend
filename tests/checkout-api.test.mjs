@@ -17,7 +17,9 @@ const vite = await createServer({
 })
 const { handlers } = await vite.ssrLoadModule('/src/mocks/handlers.ts')
 const { nftFixtures } = await vite.ssrLoadModule('/src/mocks/fixtures/nfts.ts')
-for (const handler of handlers) handler.info.path = new URL(handler.info.path, 'http://localhost').href
+for (const handler of handlers) {
+  if (handler.info?.path) handler.info.path = new URL(handler.info.path, 'http://localhost').href
+}
 const msw = setupServer(...handlers)
 msw.listen({onUnhandledRequest: 'error'})
 const fixture = structuredClone(nftFixtures)

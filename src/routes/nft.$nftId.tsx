@@ -29,7 +29,9 @@ function NftDetailsPage() {
   const nftQuery = useNftDetail(nftId, scenario)
   const addCartItem = useAddCartItem()
   const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null)
-  const availableEditions = nftQuery.data?.editions.filter((edition) => edition.available) ?? []
+  const availableEditions = nftQuery.data?.available
+    ? nftQuery.data.editions.filter((edition) => edition.available)
+    : []
   const selectedEdition = selectedEditionId ?? availableEditions[0]?.id
   const addError = addCartItem.error instanceof ApiError ? addCartItem.error : null
 
@@ -116,8 +118,8 @@ function NftDetailsPage() {
                       className="flex items-center justify-between gap-3 rounded-2xl border bg-muted/35 px-4 py-3"
                     >
                       <span className="text-sm font-medium">{edition.label}</span>
-                      <Badge variant={edition.available ? 'default' : 'secondary'}>
-                        {edition.available ? 'Disponivel' : 'Vendida'}
+                      <Badge variant={nftQuery.data.available && edition.available ? 'default' : 'secondary'}>
+                        {nftQuery.data.available && edition.available ? 'Disponivel' : 'Vendida'}
                       </Badge>
                     </div>
                   ))}

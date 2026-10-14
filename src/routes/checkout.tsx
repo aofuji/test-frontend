@@ -32,6 +32,8 @@ import {
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+import { nftNoticeEvent } from '@/realtime/useRealtime'
+import type { NftUpdatedEvent } from '@/api/types/realtime'
 
 const checkoutAttemptKey = 'nft-marketplace.checkout-attempt.v1'
 
@@ -60,6 +62,19 @@ function CheckoutPage() {
   const [recoveryPending, setRecoveryPending] = useState(true)
   const [recoveryError, setRecoveryError] = useState(false)
   const userId = sessionQuery.data?.user.id
+
+  useEffect(() => {
+    function onNftUpdated(raw: Event) {
+      const event = (raw as CustomEvent<NftUpdatedEvent>).detail
+      if (!cartQuery.data?.items.some((item) => item.nftId === event.nftId) &&
+          !quote?.cart.items.some((item) => item.nftId === event.nftId)) return
+      setQuote(null)
+      setStatusMessage('Um NFT do carrinho mudou. Atualize a cotacao e revise os valores antes de confirmar.')
+      setStatusIsError(true)
+    }
+    window.addEventListener(nftNoticeEvent, onNftUpdated)
+    return () => window.removeEventListener(nftNoticeEvent, onNftUpdated)
+  }, [cartQuery.data?.items, quote])
 
   useEffect(() => {
     if (!userId) return

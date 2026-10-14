@@ -11,6 +11,7 @@
     "test:checkout": "node tests/checkout-api.test.mjs",
     "test:checkout:browser": "node tests/checkout-browser.mjs",
     "test:cart:browser": "node tests/cart-browser.mjs",
+    "test:realtime:browser": "node tests/realtime-browser.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -5,6 +5,7 @@ export type PaymentStatus = 'pending' | 'confirmed' | 'declined'
 
 export type OrderScenario =
   | 'pending'
+  | 'pending-manual'
   | 'confirmed'
   | 'declined'
   | 'timeout-before-create'
@@ -21,6 +22,7 @@ export type OrderItemSnapshot = CartItem & {
 
 export type Order = {
   id: string
+  version?: number
   status: PaymentStatus
   transactionId: string | null
   quoteId: string

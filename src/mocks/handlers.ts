@@ -35,11 +35,14 @@ import {
   getCart,
   getOwnerKey,
   getStoredQuote,
+  invalidateQuotesForNft,
   removeCartItem,
   resetCartState,
   updateCartItem,
 } from './cartState'
-import { createOrder, getOrder, getOrderByAttempt, hasOrderAttempt, resetOrderState, shouldExpireSession, shouldTimeoutBeforeCreation } from './orderState'
+import { createOrder, getOrder, getOrderByAttempt, hasOrderAttempt, resetOrderState, shouldExpireSession, shouldTimeoutBeforeCreation, updateOrderStatus } from './orderState'
+import { changeNft, resetNftState } from './nftState'
+import { emitNftUpdated, emitOrderUpdated, realtimeHandler, resetRealtime, setRealtimeDisconnected } from './realtime'
 import {
   createWallet,
   listWallets,
@@ -48,6 +51,7 @@ import {
 } from './walletState'
 
 export const handlers = [
+  realtimeHandler,
   http.post('/api/auth/register', async ({ request }) => {
     const result = registerUser((await request.json()) as RegisterRequest)
 
@@ -99,9 +103,51 @@ export const handlers = [
     resetCartState()
     resetWalletState()
     resetOrderState()
+    resetNftState()
+    resetRealtime()
     localStorage.removeItem('nft-marketplace.checkout-attempt.v1')
 
     return HttpResponse.json({ ok: true })
+  }),
+
+  http.post('/api/__mock/realtime/nft', async ({ request }) => {
+    const payload = await request.json() as { nftId: string; editionId?: string; priceEth?: string; available?: boolean; stock?: number; delivery?: 'normal' | 'duplicate' | 'old' | 'out-of-order' }
+    const event = changeNft(payload)
+    if (!event) return HttpResponse.json({ code: 'INVALID_NFT_CHANGE' }, { status: 400 })
+    invalidateQuotesForNft(event.nftId)
+    if (payload.delivery === 'old' || payload.delivery === 'out-of-order') emitNftUpdated({ ...event, version: event.version - 1 })
+    emitNftUpdated(event)
+    if (payload.delivery === 'duplicate' || payload.delivery === 'out-of-order') emitNftUpdated(event)
+    if (payload.delivery === 'out-of-order') emitNftUpdated({ ...event, version: event.version - 1 })
+    return HttpResponse.json({ event })
+  }),
+
+  http.post('/api/__mock/realtime/nft-event', async ({ request }) => {
+    const payload = await request.json() as { nftId: string; version: number }
+    const nft = findNftById(payload.nftId)
+    if (!nft || !Number.isInteger(payload.version) || payload.version < 1 || payload.version >= (nft.version ?? 1)) {
+      return HttpResponse.json({ code: 'INVALID_OLD_EVENT' }, { status: 400 })
+    }
+    emitNftUpdated({ nftId: nft.id, priceEth: nft.priceEth, available: nft.available, version: payload.version })
+    return HttpResponse.json({ ok: true })
+  }),
+
+  http.post('/api/__mock/realtime/order', async ({ request }) => {
+    const payload = await request.json() as { orderId: string; status: 'confirmed' | 'declined' }
+    const order = updateOrderStatus(getCurrentUserId(), payload.orderId, payload.status)
+    return order ? HttpResponse.json({ order }) : HttpResponse.json({ code: 'ORDER_NOT_PENDING' }, { status: 409 })
+  }),
+
+  http.post('/api/__mock/realtime/order-event', async ({ request }) => {
+    const payload = await request.json() as { orderId: string; userId: string; status: 'pending' | 'confirmed' | 'declined'; version: number }
+    emitOrderUpdated(payload)
+    return HttpResponse.json({ ok: true })
+  }),
+
+  http.post('/api/__mock/realtime/connection', async ({ request }) => {
+    const payload = await request.json() as { disconnected: boolean }
+    setRealtimeDisconnected(Boolean(payload.disconnected))
+    return HttpResponse.json({ disconnected: Boolean(payload.disconnected) })
   }),
 
   http.get('/api/wallets', ({ request }) => {

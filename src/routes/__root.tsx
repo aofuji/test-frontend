@@ -4,6 +4,7 @@ import { LogOut, ShoppingBag, UserRound, WalletCards } from 'lucide-react'
 import { useLogout, useSession } from '@/api/hooks/useAuth'
 import { Button } from '@/components/ui/button'
 import type { RouterContext } from '@/router'
+import { useRealtime } from '@/realtime/useRealtime'
 import '../App.css'
 
 const navigationItems = [
@@ -16,6 +17,7 @@ const navigationItems = [
 function RootLayout() {
   const sessionQuery = useSession()
   const logoutMutation = useLogout()
+  const realtimeNotice = useRealtime(sessionQuery.data?.user.id ?? null)
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -98,6 +100,7 @@ function RootLayout() {
       </header>
 
       <main className="mx-auto min-h-[calc(100svh-160px)] w-full max-w-screen-2xl px-5 py-8 lg:px-10 lg:py-12">
+        {realtimeNotice ? <p role="status" aria-live="polite" className="mb-5 rounded-lg border bg-muted px-4 py-3 text-sm">{realtimeNotice}</p> : null}
         <Outlet />
       </main>
 

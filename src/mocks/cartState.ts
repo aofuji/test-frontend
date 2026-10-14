@@ -77,6 +77,14 @@ export function resetCartState() {
   localStorage.removeItem(guestIdKey)
 }
 
+export function invalidateQuotesForNft(nftId: string) {
+  const state = readState()
+  for (const [id, stored] of Object.entries(state.quotes ?? {})) {
+    if (stored.quote.cart.items.some((item) => item.nftId === nftId)) delete state.quotes![id]
+  }
+  writeState(state)
+}
+
 export function getStoredQuote(ownerKey: string, quoteId: string) {
   const state = readState()
   const storedQuote = state.quotes?.[quoteId]

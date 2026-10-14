@@ -5,7 +5,7 @@ import type {
   NftListResponse,
   NftSortOption,
 } from '../api/types/nft'
-import { nftFixtures } from './fixtures/nfts'
+import { getNfts } from './nftState'
 
 const defaultPage = 1
 const defaultPageSize = 6
@@ -25,7 +25,7 @@ export function listNfts(params: NftListParams): NftListResponse {
   const pageSize = Math.max(params.pageSize ?? defaultPageSize, 1)
   const search = params.search?.trim().toLowerCase()
 
-  const filtered = nftFixtures
+  const filtered = getNfts()
     .filter((nft) => {
       if (!search) {
         return true
@@ -52,7 +52,7 @@ export function listNfts(params: NftListParams): NftListResponse {
 }
 
 export function findNftById(nftId: string) {
-  return nftFixtures.find((nft) => nft.id === nftId)
+  return getNfts().find((nft) => nft.id === nftId)
 }
 
 export function parseMockScenario(value: string | null): MockScenario {
@@ -79,7 +79,7 @@ function matchesAvailability(
 }
 
 function getSort(sort: NftSortOption = 'newest') {
-  return (left: (typeof nftFixtures)[number], right: (typeof nftFixtures)[number]) => {
+  return (left: ReturnType<typeof getNfts>[number], right: ReturnType<typeof getNfts>[number]) => {
     if (sort === 'price-asc') {
       return Number(left.priceEth) - Number(right.priceEth)
     }

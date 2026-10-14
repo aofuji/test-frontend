@@ -14,8 +14,10 @@ import {
   removePurchasedCartItems,
 } from './cartState'
 import { getWallet } from './walletState'
+import { emitOrderUpdated } from './realtime'
 
 const orderStateKey = 'nft-marketplace.order-state.v1'
+const pendingTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
 type IdempotencyRecord = {
   fingerprint: string
@@ -27,6 +29,7 @@ type PersistedOrderState = {
   ordersByUser: Record<string, Order[]>
   idempotencyByUser: Record<string, Record<string, IdempotencyRecord>>
   pendingReadsByOrder?: Record<string, number>
+  manualPendingOrderIds?: string[]
   timedOutBeforeCreation?: string[]
   expiredSessionAttempts?: string[]
 }
@@ -36,7 +39,17 @@ type OrderResult<T> =
   | { ok: false; status: number; error: OrderErrorResponse }
 
 export function resetOrderState() {
+  for (const timer of pendingTimers.values()) clearTimeout(timer)
+  pendingTimers.clear()
   localStorage.removeItem(orderStateKey)
+}
+
+function schedulePendingOrder(userId: string, orderId: string) {
+  if (pendingTimers.has(orderId)) return
+  pendingTimers.set(orderId, setTimeout(() => {
+    pendingTimers.delete(orderId)
+    updateOrderStatus(userId, orderId, 'confirmed')
+  }, 1800))
 }
 
 export function shouldTimeoutBeforeCreation(userId: string | null, key: string) {
@@ -82,13 +95,15 @@ export function getOrder(userId: string | null, orderId: string): OrderResult<Or
     }
   }
 
-  if (order.status === 'pending') {
+  if (order.status === 'pending' && !state.manualPendingOrderIds?.includes(order.id)) {
+    schedulePendingOrder(userId, order.id)
     state.pendingReadsByOrder ??= {}
     const reads = (state.pendingReadsByOrder[order.id] ?? 0) + 1
     state.pendingReadsByOrder[order.id] = reads
 
     if (reads >= 2) {
       order.status = 'confirmed'
+      order.version = (order.version ?? 1) + 1
       order.transactionId = `tx-${crypto.randomUUID().slice(0, 12)}`
       order.updatedAt = new Date().toISOString()
     }
@@ -97,6 +112,7 @@ export function getOrder(userId: string | null, orderId: string): OrderResult<Or
 
     if (order.status === 'confirmed') {
       applyConfirmedCart(userId, order)
+      emitOrderUpdated({ orderId: order.id, userId, status: order.status, version: order.version! })
     }
   }
 
@@ -258,11 +274,12 @@ export function createOrder(
   const now = new Date().toISOString()
   const status = payload.scenario === 'declined'
     ? 'declined'
-    : payload.scenario === 'pending'
+    : payload.scenario === 'pending' || payload.scenario === 'pending-manual'
       ? 'pending'
       : 'confirmed'
   const order: Order = {
     id: `order-${crypto.randomUUID()}`,
+    version: 1,
     status,
     transactionId:
       status === 'confirmed' ? `tx-${crypto.randomUUID().slice(0, 12)}` : null,
@@ -282,18 +299,43 @@ export function createOrder(
 
   state.ordersByUser[userId] ??= []
   state.ordersByUser[userId].push(order)
+  if (payload.scenario === 'pending-manual') {
+    state.manualPendingOrderIds ??= []
+    state.manualPendingOrderIds.push(order.id)
+  }
   idempotencyRecords[payload.idempotencyKey] = {
     fingerprint,
     orderId: order.id,
     cartApplied: false,
   }
   writeState(state)
+  if (status === 'pending') {
+    emitOrderUpdated({ orderId: order.id, userId, status, version: 1 })
+    if (payload.scenario !== 'pending-manual') schedulePendingOrder(userId, order.id)
+  }
 
   if (order.status === 'confirmed') {
     applyConfirmedCart(userId, order)
   }
 
   return { ok: true, data: order }
+}
+
+export function updateOrderStatus(userId: string | null, orderId: string, status: 'confirmed' | 'declined') {
+  if (!userId) return null
+  const state = readState()
+  const order = state.ordersByUser[userId]?.find((item) => item.id === orderId)
+  if (!order || order.status !== 'pending') return null
+  order.status = status
+  state.manualPendingOrderIds = state.manualPendingOrderIds?.filter((id) => id !== orderId)
+  order.version = (order.version ?? 1) + 1
+  order.updatedAt = new Date().toISOString()
+  order.transactionId = status === 'confirmed' ? `tx-${crypto.randomUUID().slice(0, 12)}` : null
+  order.failureReason = status === 'declined' ? 'Pagamento recusado pelo provedor simulado.' : undefined
+  writeState(state)
+  if (status === 'confirmed') applyConfirmedCart(userId, order)
+  emitOrderUpdated({ orderId, userId, status, version: order.version })
+  return order
 }
 
 function applyConfirmedCart(userId: string, order: Order) {

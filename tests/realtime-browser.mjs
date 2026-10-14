@@ -1,0 +1,143 @@
+import assert from 'node:assert/strict'
+
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
+const browser = await chromium.launch({ headless: true, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}) })
+const base = process.env.REALTIME_TEST_URL || 'http://127.0.0.1:5173'
+const context = await browser.newContext()
+const page = await context.newPage()
+const errors = []
+page.on('pageerror', (error) => errors.push(error.message))
+
+async function api(path, body) {
+  return page.evaluate(async ({ path, body }) => {
+    const response = await fetch(`/api${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    return { status: response.status, data: await response.json() }
+  }, { path, body })
+}
+
+async function reset() {
+  await page.goto(base)
+  await page.getByRole('navigation', { name: 'Navegacao principal' }).waitFor()
+  assert.equal((await api('/__mock/reset-auth', {})).status, 200)
+  await page.reload()
+}
+
+try {
+  await reset()
+  await page.goto(`${base}/nft/aurora-001`)
+  await page.getByRole('button', { name: 'Adicionar', exact: true }).click()
+  await page.getByRole('status').filter({ hasText: 'NFT adicionado' }).waitFor()
+  await page.goto(`${base}/cart`)
+  await page.getByText('1.2 ETH').first().waitFor()
+  await page.evaluate(() => {
+    window.__nftEvents = 0
+    window.addEventListener('nft-marketplace:nft-updated', () => { window.__nftEvents++ })
+  })
+  const quote = await page.evaluate(async () => (await (await fetch('/api/quotes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })).json()).quote)
+  const changed = await api('/__mock/realtime/nft', { nftId: 'aurora-001', editionId: 'aurora-001-a', priceEth: '1.44', stock: 1, delivery: 'duplicate' })
+  assert.equal(changed.status, 200)
+  await page.getByRole('status').filter({ hasText: 'aurora-001 mudou' }).waitFor()
+  await page.getByText('1.44 ETH').first().waitFor()
+  assert.equal(await page.evaluate(() => window.__nftEvents), 1, 'duplicate socket frames must be ignored')
+  assert.equal(await page.evaluate(async (id) => (await fetch(`/api/quotes/${id}`)).status, quote.id), 404)
+  const cart = await page.evaluate(async () => (await (await fetch('/api/cart')).json()).cart)
+  assert.equal(cart.items[0].maxQuantity, 1)
+  console.log('PASS real Socket.IO nft event refreshes cart, stock and invalidates quote; duplicate discarded')
+
+  await api('/__mock/realtime/nft', { nftId: 'aurora-001', priceEth: '1.55', delivery: 'out-of-order' })
+  await page.getByText('1.55 ETH').first().waitFor()
+  assert.equal(await page.evaluate(() => window.__nftEvents), 2, 'old and out-of-order frames must be ignored')
+  await page.goto(`${base}/nft/aurora-001`)
+  await page.getByText('1.55 ETH').first().waitFor()
+  await page.goto(base)
+  await page.getByText('1.55 ETH').first().waitFor()
+  await page.evaluate(() => {
+    window.__nftEvents = 0
+    window.addEventListener('nft-marketplace:nft-updated', () => { window.__nftEvents++ })
+  })
+  await api('/__mock/realtime/nft-event', { nftId: 'aurora-001', version: 1 })
+  await page.waitForTimeout(200)
+  assert.equal(await page.evaluate(() => window.__nftEvents), 0, 'old frame after refresh must be ignored')
+  await page.goto(`${base}/cart`)
+  await page.getByRole('heading', { name: 'Revise seus NFTs selecionados.' }).waitFor()
+  console.log('PASS out-of-order event is discarded; catalogue and detail reflect REST state')
+
+  await api('/__mock/realtime/connection', { disconnected: true })
+  await page.getByRole('status').filter({ hasText: 'Reconectando' }).waitFor()
+  await api('/__mock/realtime/nft', { nftId: 'aurora-001', priceEth: '1.66' })
+  await api('/__mock/realtime/connection', { disconnected: false })
+  await page.getByRole('status').filter({ hasText: 'Conexao restaurada' }).waitFor({ timeout: 10000 })
+  await page.getByText('1.66 ETH').first().waitFor()
+  console.log('PASS reconnect reconciles missed NFT event through REST')
+
+  await page.goto(`${base}/login`)
+  await page.getByLabel('E-mail').fill('ada@example.com')
+  await page.getByLabel('Senha', { exact: true }).fill('collector123')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await page.waitForURL((url) => url.pathname !== '/login')
+  await page.getByRole('button', { name: 'Sair' }).waitFor()
+  const session = await page.evaluate(async () => (await (await fetch('/api/auth/session')).json()).user)
+  await page.goto(`${base}/checkout`)
+  await page.getByRole('heading', { name: 'Confirmar compra' }).waitFor()
+  await page.getByRole('button', { name: 'Revalidar cotacao' }).click()
+  await page.getByText(/Cotacao quote-/).waitFor()
+  await api('/__mock/realtime/nft', { nftId: 'aurora-001', priceEth: '1.77' })
+  await page.getByRole('alert').filter({ hasText: 'Atualize a cotacao' }).waitFor()
+  assert.equal(await page.getByText(/Cotacao quote-/).count(), 0)
+  console.log('PASS checkout discards the stale quote and requires another review')
+  const quoteResponse = await api('/quotes', {})
+  assert.equal(quoteResponse.status, 200)
+  const wallets = await page.evaluate(async () => (await (await fetch('/api/wallets')).json()).wallets)
+  const orderResponse = await api('/orders', { quoteId: quoteResponse.data.quote.id, walletId: wallets[0].id, network: 'ethereum', idempotencyKey: 'realtime-test', scenario: 'pending' })
+  assert.equal(orderResponse.status, 201)
+  assert.equal(orderResponse.data.order.status, 'pending')
+  const orderId = orderResponse.data.order.id
+  await page.goto(`${base}/orders/${orderId}`)
+  await page.getByText('Confirmado', { exact: true }).first().waitFor({ timeout: 10000 })
+  assert.equal((await page.evaluate(async (id) => (await (await fetch(`/api/orders/${id}`)).json()).order.status, orderId)), 'confirmed')
+  console.log('PASS pending order becomes confirmed via Socket.IO without receipt polling')
+
+  await page.getByRole('button', { name: 'Sair' }).click()
+  await page.waitForURL(`${base}/`)
+  await page.goto(`${base}/login`)
+  await page.getByLabel('E-mail').fill('bruno@example.com')
+  await page.getByLabel('Senha', { exact: true }).fill('vault1234')
+  await page.getByRole('button', { name: 'Entrar', exact: true }).click()
+  await page.waitForURL((url) => url.pathname !== '/login')
+  await page.getByRole('button', { name: 'Sair' }).waitFor()
+  await api('/__mock/realtime/order-event', { orderId, userId: session.id, status: 'declined', version: 999 })
+  await page.waitForTimeout(250)
+  assert.equal(await page.getByRole('status').filter({ hasText: orderId }).count(), 0, 'other user event must not be shown')
+  console.log('PASS previous-user order event cannot reach the new session')
+
+  const brunoItem = { nftId: 'pixel-reef-044', editionId: 'pixel-reef-044-a', quantity: 1 }
+  assert.equal((await api('/cart/items', brunoItem)).status, 200)
+  const pendingQuote = await api('/quotes', {})
+  const brunoWallets = await page.evaluate(async () => (await (await fetch('/api/wallets')).json()).wallets)
+  const pendingOrder = await api('/orders', { quoteId: pendingQuote.data.quote.id, walletId: brunoWallets[0].id, network: brunoWallets[0].network, idempotencyKey: 'offline-pending', scenario: 'pending-manual' })
+  assert.equal(pendingOrder.data.order.status, 'pending')
+  await page.goto(`${base}/orders/${pendingOrder.data.order.id}`)
+  await page.getByText('Pendente', { exact: true }).first().waitFor()
+  await page.getByRole('status').filter({ hasText: 'tempo real conectadas' }).waitFor()
+  await api('/__mock/realtime/connection', { disconnected: true })
+  await page.getByRole('status').filter({ hasText: 'Reconectando' }).waitFor()
+  assert.equal((await api('/__mock/realtime/order', { orderId: pendingOrder.data.order.id, status: 'confirmed' })).status, 200)
+  await page.waitForTimeout(250)
+  assert.ok(await page.getByText('Pendente', { exact: true }).first().isVisible(), 'no polling while disconnected')
+  await api('/__mock/realtime/connection', { disconnected: false })
+  await page.getByRole('status').filter({ hasText: 'Conexao restaurada' }).waitFor({ timeout: 10000 })
+  await page.getByText('Confirmado', { exact: true }).first().waitFor({ timeout: 10000 })
+  console.log('PASS pending order missed while offline is recovered on reconnect')
+
+  assert.equal((await api('/cart/items', brunoItem)).status, 200)
+  const declinedQuote = await api('/quotes', {})
+  const declinedOrder = await api('/orders', { quoteId: declinedQuote.data.quote.id, walletId: brunoWallets[0].id, network: brunoWallets[0].network, idempotencyKey: 'declined-pending', scenario: 'pending' })
+  assert.equal((await api('/__mock/realtime/order', { orderId: declinedOrder.data.order.id, status: 'declined' })).status, 200)
+  await page.goto(`${base}/orders/${declinedOrder.data.order.id}`)
+  await page.getByText('Recusado', { exact: true }).first().waitFor()
+  assert.ok(await page.getByText('Nao emitida').count(), 'declined receipt must not show transaction')
+  console.log('PASS order.updated declined is terminal and never shows confirmation')
+  assert.deepEqual(errors, [])
+} finally {
+  await browser.close()
+}

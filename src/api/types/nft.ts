@@ -13,6 +13,7 @@ export type NftEdition = {
 
 export type Nft = {
   id: string
+  version?: number
   name: string
   creator: string
   collection: string

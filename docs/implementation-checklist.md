@@ -1,6 +1,6 @@
 # Checklist de implementação — desafio Frontend
 
-Fonte: [enunciado oficial](desafio-frontend.md), disponibilizado no projeto. Revisão em 14/10/2026. A classificação é por requisito identificável na fonte; testes do checkout e dos endpoints simulados constam de `tests/checkout-api.test.mjs` e `tests/checkout-browser.mjs`. “Verificado” se restringe ao comportamento efetivamente exercitado por esses testes; existência de código isoladamente não comprova conclusão.
+Fonte: [enunciado oficial](desafio-frontend.md), disponibilizado no projeto. Revisão em 14/10/2026. A classificação é por requisito identificável na fonte; há testes de carrinho, checkout e tempo real em `tests/`. “Verificado” se restringe ao comportamento efetivamente exercitado por esses testes; existência de código isoladamente não comprova conclusão.
 
 Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não verificado; **PI** = parcialmente implementado; **P** = pendente. São eliminatórios os seis pontos expressamente listados na seção 11 do enunciado. Cada grupo abaixo cita a seção correspondente.
 
@@ -9,7 +9,7 @@ Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não veri
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
 | React, TypeScript, TanStack Router, TanStack Query, Axios, REST, Tailwind CSS, shadcn/ui e MSW participam efetivamente | INV | Dependências e uso em `src`; conformidade geral ainda requer avaliação integrada. **Eliminatório** quando a stack obrigatória não é usada efetivamente. |
-| Socket.IO participa efetivamente | P | Dependência declarada; sem cliente e eventos da seção 7. **Eliminatório** por ausência de uso efetivo da stack. |
+| Socket.IO participa efetivamente | CV | `socket.io-client` recebe quadros Engine.IO/Socket.IO via WebSocket interceptado pelo MSW; teste no Chromium e preview de produção. **Eliminatório** por ausência de uso efetivo da stack. |
 | Contratos tipados, cache por usuário/parâmetro, descarte de respostas obsoletas, estados de carga/erro e rollback otimista | PI | Presente em API/hooks e carrinho; cobertura integral das rotas ainda não demonstrada. |
 | Fluxos principais são funcionais e não apenas visuais | PI | Compra simulada agora tem testes; descoberta e conta completos ainda carecem de validação. **Eliminatório**. |
 | Rotas inexistentes, acesso direto, execução de checkout limpo e documentação completa | PI | Há rota 404 e acesso direto no Router; README ainda é o template do Vite. |
@@ -20,7 +20,7 @@ Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não veri
 | --- | --- | --- |
 | Destaques, catálogo, busca, filtros combináveis, ordenação, paginação e estado da URL | INV | `src/routes/index.tsx` e `src/mocks/apiState.ts`; testes Playwright pedidos ainda ausentes. |
 | Detalhe com galeria, edição, quantidade, favoritos, acesso direto, ausentes e indisponíveis | PI | Detalhe, edição e disponibilidade existem; galeria e favoritos não demonstrados. |
-| Atualizações de preço/disponibilidade via `nft.updated` e reconciliação REST | P | Depende da etapa de tempo real. |
+| Atualizações de preço/disponibilidade via `nft.updated` e reconciliação REST | CV | Cenários de preço, estoque, duplicata, fora de ordem e evento perdido no navegador; catálogo, detalhe e carrinho consultam a API simulada. |
 
 ## Autenticação e sessão — seções 3, 4, 5 e 6
 
@@ -28,7 +28,7 @@ Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não veri
 | --- | --- | --- |
 | Cadastro, login, logout, sessão recuperável e rotas privadas | INV | API simulada, hooks e Router presentes; só parte dos fluxos foi exercitada em testes de checkout. |
 | Validação, conflito de cadastro, expiração e retomada do contexto no checkout | PI | Login, cadastro e redirecionamento existem; tentativa de checkout é persistida por usuário e a expiração durante o envio foi exercitada no navegador; outros cenários de sessão ainda precisam de verificação. |
-| Limpeza de cache privado/subscriptions após logout e troca de usuário | PI | Limpeza de cache implementada; subscriptions de Socket.IO dependem da etapa posterior. **Exposição entre usuários é eliminatória**. |
+| Limpeza de cache privado/subscriptions após logout e troca de usuário | CV | Hooks de autenticação limpam cache privado; conexão e listeners são encerrados e refeitos ao trocar `userId`. Teste Playwright descarta evento do usuário anterior. **Exposição entre usuários é eliminatória**. |
 
 ## Carrinho e cotações — seções 3, 4 e 5
 
@@ -36,7 +36,7 @@ Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não veri
 | --- | --- | --- |
 | Inclusão, quantidades inteiras, remoção, estoque/edição, persistência, mesclagem de visitante e cupom | CV | Cinco testes de estado do carrinho e suíte de navegador existente; esta classificação cobre os cenários testados, não alterações em tempo real. |
 | Totais e ETH decimais da API, cotação válida para compra | CV | API simulada usa `decimal.js`; endpoint tests comparam snapshot, revisão e total. |
-| Alterações enquanto carrinho aberto e atualização por evento `nft.updated` | P | Depende do tempo real. |
+| Alterações enquanto carrinho aberto e atualização por evento `nft.updated` | CV | Teste Playwright no preview verifica resumo atualizado, estoque e cotação invalidada pela API. |
 
 ## Checkout e pedidos — seções 3, 5, 6 e 11
 
@@ -63,14 +63,14 @@ Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não veri
 
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
-| `nft.updated` e `order.updated` via cliente Socket.IO e mocks compatíveis | P | Não implementado nesta Etapa 6 por instrução expressa. |
-| Versões, descarte de duplicatas/antigos, reconexão, reconciliação REST e isolamento de sessão | P | Não implementado nesta Etapa 6. **Eventos simulados diretamente na UI são eliminatórios**. |
+| `nft.updated` e `order.updated` via cliente Socket.IO e mocks compatíveis | CV | `src/mocks/realtime.ts` intercepta o WebSocket com MSW; `src/realtime/useRealtime.ts` usa `socket.io-client`. Teste Playwright verifica atualização de carrinho, checkout e recibo sem polling. |
+| Versões, descarte de duplicatas/antigos, reconexão, reconciliação REST e isolamento de sessão | PI | Teste cobre duplicata/fora de ordem de NFT, evento perdido, troca de usuário, pedido pendente offline e recusado. Eventos antigos após refresh e reconciliação de todas as rotas ainda precisam de cobertura. **Eventos simulados diretamente na UI são eliminatórios**. |
 
 ## Testes Playwright — seções 2, 9 e 11
 
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
-| E2E executáveis dos fluxos principais | PI | Há scripts de navegador de carrinho e checkout, executáveis com Playwright externo; faltam os demais fluxos. **Ausência de testes E2E executáveis é eliminatória**. |
+| E2E executáveis dos fluxos principais | PI | Scripts de carrinho, checkout e tempo real executáveis com Playwright externo; faltam descoberta, perfil e cobertura completa. **Ausência de testes E2E executáveis é eliminatória**. |
 | Regressão visual, baselines, isolamento/relógio, relatório HTML e traces | P | Não incluídos nos scripts atuais. |
 
 ## Acessibilidade e responsividade — seções 3 e 8
@@ -93,4 +93,4 @@ Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não veri
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
 | URL pública e repositório, versão publicada correspondente, refresh e mocks ativos | P | Deploy não realizado ou comprovado no repositório. **O deploy é obrigatório**; Vercel é recomendada, Netlify e Cloudflare Pages são aceitos. |
-| README com setup, credenciais, variáveis, seleção/reset de cenários e reprodução de falhas | P | README ainda é o template do Vite. |
+| README com setup, credenciais, variáveis, seleção/reset de cenários e reprodução de falhas | PI | Setup, credenciais e controles dos mocks documentados; falta suíte/relatório E2E completo e instruções de auditoria Lighthouse. |

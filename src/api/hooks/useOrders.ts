@@ -16,8 +16,6 @@ export function useOrder(orderId: string) {
       return order
     },
     retry: false,
-    refetchInterval: (query) =>
-      query.state.data?.status === 'pending' ? 2_000 : false,
   })
 }
 
