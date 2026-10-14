@@ -34,11 +34,12 @@ import {
   createQuote,
   getCart,
   getOwnerKey,
+  getStoredQuote,
   removeCartItem,
   resetCartState,
   updateCartItem,
 } from './cartState'
-import { createOrder, getOrder, resetOrderState } from './orderState'
+import { createOrder, getOrder, getOrderByAttempt, hasOrderAttempt, resetOrderState, shouldExpireSession, shouldTimeoutBeforeCreation } from './orderState'
 import {
   createWallet,
   listWallets,
@@ -98,6 +99,7 @@ export const handlers = [
     resetCartState()
     resetWalletState()
     resetOrderState()
+    localStorage.removeItem('nft-marketplace.checkout-attempt.v1')
 
     return HttpResponse.json({ ok: true })
   }),
@@ -144,24 +146,56 @@ export const handlers = [
 
   http.post('/api/orders', async ({ request }) => {
     const payload = (await request.json()) as CreateOrderRequest
+    const userId = getCurrentUserId()
+    const existing = hasOrderAttempt(userId, payload.idempotencyKey)
 
-    if (payload.scenario === 'timeout-before-create') {
+    if (
+      payload.scenario === 'session-expired' &&
+      !existing &&
+      shouldExpireSession(userId, payload.idempotencyKey)
+    ) {
+      logoutUser()
+      return toOrderResponse(createOrder(null, payload))
+    }
+
+    if (
+      payload.scenario === 'timeout-before-create' &&
+      !existing &&
+      shouldTimeoutBeforeCreation(userId, payload.idempotencyKey)
+    ) {
       return HttpResponse.error()
     }
 
-    const result = createOrder(getCurrentUserId(), payload)
+    const result = createOrder(userId, payload)
 
-    if (payload.scenario === 'timeout-after-create' && result.ok) {
+    if (payload.scenario === 'timeout-after-create' && result.ok && !existing) {
       return HttpResponse.error()
     }
 
     return toOrderResponse(result, 201)
   }),
 
+  http.get('/api/orders/attempts/:idempotencyKey', ({ params }) => {
+    return toOrderResponse(
+      getOrderByAttempt(getCurrentUserId(), String(params.idempotencyKey)),
+    )
+  }),
+
   http.get('/api/orders/:orderId', ({ params }) => {
     const result = getOrder(getCurrentUserId(), String(params.orderId))
 
     return toOrderResponse(result)
+  }),
+
+  http.get('/api/quotes/:quoteId', ({ params }) => {
+    const ownerKey = getOwnerKey(getCurrentUserId())
+    const quote = getStoredQuote(ownerKey, String(params.quoteId))
+    return quote
+      ? HttpResponse.json({ quote })
+      : HttpResponse.json(
+          { code: 'QUOTE_NOT_FOUND', message: 'Cotacao nao encontrada.' },
+          { status: 404 },
+        )
   }),
 
   http.get('/api/cart', ({ request }) => {

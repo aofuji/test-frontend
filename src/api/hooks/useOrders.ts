@@ -5,10 +5,19 @@ import { queryKeys } from '../queryKeys'
 import type { CreateOrderRequest } from '../types/order'
 
 export function useOrder(orderId: string) {
+  const queryClient = useQueryClient()
   return useQuery({
     queryKey: queryKeys.orders.detail(orderId),
-    queryFn: ({ signal }) => getOrder(orderId, signal),
+    queryFn: async ({ signal }) => {
+      const order = await getOrder(orderId, signal)
+      if (order.status === 'confirmed') {
+        void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
+      }
+      return order
+    },
     retry: false,
+    refetchInterval: (query) =>
+      query.state.data?.status === 'pending' ? 2_000 : false,
   })
 }
 
@@ -28,7 +37,7 @@ export function useCreateOrder() {
     onSuccess: (order) => {
       queryClient.setQueryData(queryKeys.orders.detail(order.id), order)
       void queryClient.invalidateQueries({ queryKey: queryKeys.orders.all() })
-      void queryClient.invalidateQueries({ queryKey: queryKeys.cart.current() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
     },
   })
 }

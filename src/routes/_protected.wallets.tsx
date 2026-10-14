@@ -41,16 +41,26 @@ function WalletsPage() {
   const createWallet = useCreateWallet()
   const updateWallet = useUpdateWallet()
   const [form, setForm] = useState(emptyForm)
+  const [editingWalletId, setEditingWalletId] = useState<string | null>(null)
   const [message, setMessage] = useState('')
+  const fieldErrors = (editingWalletId ? updateWallet.error : createWallet.error) instanceof ApiError
+    ? ((editingWalletId ? updateWallet.error : createWallet.error) as ApiError).fieldErrors
+    : undefined
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setMessage('')
 
     try {
-      await createWallet.mutateAsync(form)
+      if (editingWalletId) {
+        await updateWallet.mutateAsync({ walletId: editingWalletId, payload: form })
+        setMessage('Carteira atualizada com sucesso.')
+      } else {
+        await createWallet.mutateAsync(form)
+        setMessage('Carteira conectada com sucesso.')
+      }
       setForm(emptyForm)
-      setMessage('Carteira conectada com sucesso.')
+      setEditingWalletId(null)
     } catch (error) {
       setMessage(getErrorMessage(error))
     }
@@ -130,6 +140,23 @@ function WalletsPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
+                    onClick={() => {
+                      createWallet.reset()
+                      updateWallet.reset()
+                      setEditingWalletId(wallet.id)
+                      setForm({
+                        label: wallet.label,
+                        address: wallet.address,
+                        network: wallet.network,
+                        kind: wallet.kind,
+                      })
+                      setMessage('')
+                    }}
+                  >
+                    Editar {wallet.label}
+                  </Button>
+                  <Button
+                    variant="outline"
                     onClick={() =>
                       void patchWallet(wallet, {
                         status:
@@ -171,7 +198,7 @@ function WalletsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Nova carteira</CardTitle>
+            <CardTitle>{editingWalletId ? 'Editar carteira' : 'Nova carteira'}</CardTitle>
             <CardDescription>
               Cadastro simulado com validacao de endereco EVM.
             </CardDescription>
@@ -182,6 +209,8 @@ function WalletsPage() {
                 Nome
                 <Input
                   value={form.label}
+                  aria-invalid={Boolean(fieldErrors?.label)}
+                  aria-describedby={fieldErrors?.label ? 'wallet-label-error' : undefined}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
@@ -190,11 +219,14 @@ function WalletsPage() {
                   }
                   placeholder="Carteira de compras"
                 />
+                {fieldErrors?.label ? <span id="wallet-label-error" className="text-sm text-destructive">{fieldErrors.label}</span> : null}
               </label>
               <label className="grid gap-2 text-sm font-medium">
                 Endereco
                 <Input
                   value={form.address}
+                  aria-invalid={Boolean(fieldErrors?.address)}
+                  aria-describedby={fieldErrors?.address ? 'wallet-address-error' : undefined}
                   onChange={(event) =>
                     setForm((current) => ({
                       ...current,
@@ -203,6 +235,7 @@ function WalletsPage() {
                   }
                   placeholder="0x..."
                 />
+                {fieldErrors?.address ? <span id="wallet-address-error" className="text-sm text-destructive">{fieldErrors.address}</span> : null}
               </label>
               <label className="grid gap-2 text-sm font-medium">
                 Rede
@@ -215,7 +248,7 @@ function WalletsPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="h-10 w-full">
+                  <SelectTrigger aria-label="Rede da carteira" className="h-10 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -236,7 +269,7 @@ function WalletsPage() {
                     }))
                   }
                 >
-                  <SelectTrigger className="h-10 w-full">
+                  <SelectTrigger aria-label="Tipo da carteira" className="h-10 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -246,13 +279,18 @@ function WalletsPage() {
                 </Select>
               </label>
               {message ? (
-                <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                <p role={createWallet.error || updateWallet.error ? 'alert' : 'status'} className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
                   {message}
                 </p>
               ) : null}
-              <Button className="w-full" disabled={createWallet.isPending}>
-                {createWallet.isPending ? 'Conectando...' : 'Conectar carteira'}
+              <Button className="w-full" disabled={createWallet.isPending || updateWallet.isPending}>
+                {editingWalletId ? 'Salvar carteira' : 'Conectar carteira'}
               </Button>
+              {editingWalletId ? (
+                <Button type="button" variant="outline" className="w-full" onClick={() => { setEditingWalletId(null); setForm(emptyForm); createWallet.reset(); updateWallet.reset() }}>
+                  Cancelar edicao
+                </Button>
+              ) : null}
             </form>
           </CardContent>
         </Card>

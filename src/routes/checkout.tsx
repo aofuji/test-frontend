@@ -1,8 +1,11 @@
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { CheckCircle2, RefreshCw, ShieldCheck, WalletCards } from 'lucide-react'
 import type { ReactNode } from 'react'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
+import { getSession } from '@/api/auth'
+import { getQuote } from '@/api/cart'
+import { getOrderByAttempt } from '@/api/orders'
 import { useSession } from '@/api/hooks/useAuth'
 import { useCart, useCreateQuote } from '@/api/hooks/useCart'
 import { useCreateOrder } from '@/api/hooks/useOrders'
@@ -32,6 +35,15 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 const checkoutAttemptKey = 'nft-marketplace.checkout-attempt.v1'
 
+type CheckoutAttempt = {
+  userId: string
+  quoteId: string
+  key: string
+  walletId: string
+  network: WalletNetwork
+  scenario: OrderScenario
+}
+
 function CheckoutPage() {
   const navigate = useNavigate()
   const sessionQuery = useSession()
@@ -44,6 +56,68 @@ function CheckoutPage() {
   const [network, setNetwork] = useState<WalletNetwork>('ethereum')
   const [scenario, setScenario] = useState<OrderScenario>('confirmed')
   const [statusMessage, setStatusMessage] = useState('')
+  const [statusIsError, setStatusIsError] = useState(false)
+  const [recoveryPending, setRecoveryPending] = useState(true)
+  const [recoveryError, setRecoveryError] = useState(false)
+  const userId = sessionQuery.data?.user.id
+
+  useEffect(() => {
+    if (!userId) return
+    let active = true
+    const attempt = readAttempt(userId)
+
+    async function recover() {
+      if (!attempt) {
+        if (active) setRecoveryPending(false)
+        return
+      }
+
+      try {
+        const order = await getOrderByAttempt(attempt.key)
+        if (!active) return
+        if (order.status !== 'declined') {
+          if (order.status === 'confirmed') clearAttempt(userId!)
+          void navigate({ to: '/orders/$orderId', params: { orderId: order.id } })
+          return
+        }
+        clearAttempt(userId!)
+      } catch (error) {
+        if (!(error instanceof ApiError && error.status === 404)) {
+          if (active) {
+            setStatusMessage(getErrorMessage(error))
+            setStatusIsError(true)
+            setRecoveryError(true)
+            setRecoveryPending(false)
+          }
+          return
+        }
+      }
+
+      try {
+        const restoredQuote = await getQuote(attempt.quoteId)
+        if (!active) return
+        setQuote(restoredQuote)
+        setSelectedWalletId(attempt.walletId)
+        setNetwork(attempt.network)
+        setScenario(attempt.scenario)
+      } catch (error) {
+        if (active) {
+          if (error instanceof ApiError && error.status === 404) {
+            clearAttempt(userId!)
+          } else {
+            setRecoveryError(true)
+          }
+          setStatusMessage(getErrorMessage(error))
+          setStatusIsError(true)
+        }
+      } finally {
+        if (active) setRecoveryPending(false)
+      }
+    }
+
+    void recover()
+    return () => { active = false }
+  }, [navigate, userId])
 
   const wallets = walletsQuery.data ?? []
   const selectedWallet =
@@ -51,42 +125,84 @@ function CheckoutPage() {
     wallets.find((wallet) => wallet.isDefault) ??
     wallets[0]
   const cart = cartQuery.data
-  const isLoading = cartQuery.isLoading || walletsQuery.isLoading
+  const isLoading = cartQuery.isLoading || walletsQuery.isLoading || recoveryPending
   const error = cartQuery.error ?? walletsQuery.error
-  const canCheckout = Boolean(cart?.items.length && selectedWallet)
+  const canCheckout = Boolean(
+    cart?.items.length &&
+    cart.items.every((item) => item.available) &&
+    selectedWallet?.status === 'connected',
+  )
+
+  async function ensureActiveSession() {
+    try {
+      const session = await getSession()
+      if (!session || session.user.id !== userId) throw new Error('Sessao expirada.')
+      return true
+    } catch {
+      void navigate({ to: '/login', search: { redirect: '/checkout' } })
+      return false
+    }
+  }
 
   async function handleQuote() {
     setStatusMessage('')
+    setStatusIsError(false)
+    if (!userId || !(await ensureActiveSession())) return
 
     try {
       const nextQuote = await quoteMutation.mutateAsync({
         scenario: scenario === 'price-change' ? 'price-change' : undefined,
       })
       setQuote(nextQuote)
-      persistAttempt(nextQuote.id)
+      persistAttempt({
+        userId,
+        quoteId: nextQuote.id,
+        walletId: selectedWallet?.id ?? '',
+        network,
+        scenario,
+      })
       setStatusMessage('Cotacao atualizada. Revise os valores antes de confirmar.')
     } catch (error) {
       setStatusMessage(getErrorMessage(error))
+      setStatusIsError(true)
+      if (error instanceof ApiError && error.status === 401) {
+        void navigate({ to: '/login', search: { redirect: '/checkout' } })
+      }
     }
   }
 
   async function handleConfirm() {
+    if (!userId || !(await ensureActiveSession())) return
     if (!quote || !selectedWallet) {
       try {
         const nextQuote = await quoteMutation.mutateAsync({})
         setQuote(nextQuote)
-        persistAttempt(nextQuote.id)
+        persistAttempt({
+          userId,
+          quoteId: nextQuote.id,
+          walletId: selectedWallet?.id ?? '',
+          network,
+          scenario,
+        })
         setStatusMessage(
           'Cotacao inicial gerada. Clique novamente para confirmar a compra.',
         )
       } catch (error) {
         setStatusMessage(getErrorMessage(error))
+        setStatusIsError(true)
       }
       return
     }
 
-    const idempotencyKey = getOrCreateAttempt(quote.id)
+    const idempotencyKey = persistAttempt({
+      userId,
+      quoteId: quote.id,
+      walletId: selectedWallet.id,
+      network,
+      scenario,
+    })
     setStatusMessage('')
+    setStatusIsError(false)
 
     try {
       const order = await orderMutation.mutateAsync({
@@ -98,7 +214,7 @@ function CheckoutPage() {
       })
 
       if (order.status === 'confirmed') {
-        clearAttempt()
+        clearAttempt(userId)
         await navigate({
           to: '/orders/$orderId',
           params: { orderId: order.id },
@@ -106,15 +222,30 @@ function CheckoutPage() {
         return
       }
 
+      if (order.status === 'pending') {
+        await navigate({ to: '/orders/$orderId', params: { orderId: order.id } })
+        return
+      }
+
+      clearAttempt(userId)
+      setQuote(null)
       setStatusMessage(
         order.failureReason ??
           'Pagamento recusado. O carrinho foi preservado para nova tentativa.',
       )
     } catch (error) {
       setStatusMessage(getErrorMessage(error))
+      setStatusIsError(true)
 
-      if (error instanceof ApiError && error.code !== 'ORDER_SERVICE_UNAVAILABLE') {
+      if (error instanceof ApiError && error.status === 401) {
+        void navigate({ to: '/login', search: { redirect: '/checkout' } })
+      } else if (
+        error instanceof ApiError &&
+        error.status !== undefined &&
+        error.code !== 'ORDER_SERVICE_UNAVAILABLE'
+      ) {
         setQuote(null)
+        clearAttempt(userId)
       }
     }
   }
@@ -131,12 +262,22 @@ function CheckoutPage() {
     )
   }
 
+  if (recoveryError) {
+    return (
+      <StateCard
+        title="Nao foi possivel recuperar a tentativa"
+        description={statusMessage}
+        action={<Button type="button" onClick={() => window.location.reload()}>Tentar novamente</Button>}
+      />
+    )
+  }
+
   if (error) {
     return (
       <StateCard
         title="Nao foi possivel carregar o checkout"
         description={getErrorMessage(error)}
-        action={<Button onClick={() => void cartQuery.refetch()}>Tentar novamente</Button>}
+        action={<Button onClick={() => { void cartQuery.refetch(); void walletsQuery.refetch() }}>Tentar novamente</Button>}
       />
     )
   }
@@ -205,6 +346,8 @@ function CheckoutPage() {
                   value={selectedWallet?.id ?? ''}
                   onValueChange={(walletId) => {
                     setSelectedWalletId(walletId)
+                    setQuote(null)
+                    clearAttempt(userId)
                     const wallet = wallets.find(
                       (candidate) => candidate.id === walletId,
                     )
@@ -214,7 +357,7 @@ function CheckoutPage() {
                     }
                   }}
                 >
-                  <SelectTrigger className="h-10 w-full">
+                  <SelectTrigger aria-label="Carteira do pedido" className="h-10 w-full">
                     <SelectValue placeholder="Selecione" />
                   </SelectTrigger>
                   <SelectContent>
@@ -230,9 +373,13 @@ function CheckoutPage() {
                 Rede
                 <Select
                   value={network}
-                  onValueChange={(value) => setNetwork(value as WalletNetwork)}
+                  onValueChange={(value) => {
+                    setNetwork(value as WalletNetwork)
+                    setQuote(null)
+                    clearAttempt(userId)
+                  }}
                 >
-                  <SelectTrigger className="h-10 w-full">
+                  <SelectTrigger aria-label="Rede do pedido" className="h-10 w-full">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -244,9 +391,16 @@ function CheckoutPage() {
               </label>
               <div className="md:col-span-2">
                 {selectedWallet ? (
-                  <p className="break-all rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                    {selectedWallet.address}
-                  </p>
+                  <div className="space-y-2">
+                    <p className="break-all rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+                      {selectedWallet.address}
+                    </p>
+                    {selectedWallet.status !== 'connected' ? (
+                      <p role="alert" className="text-sm text-destructive">
+                        Carteira desconectada. Conecte-a em Carteiras para continuar.
+                      </p>
+                    ) : null}
+                  </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">
                     Cadastre uma carteira para continuar.
@@ -267,13 +421,18 @@ function CheckoutPage() {
             <CardContent>
               <Select
                 value={scenario}
-                onValueChange={(value) => setScenario(value as OrderScenario)}
+                onValueChange={(value) => {
+                  setScenario(value as OrderScenario)
+                  setQuote(null)
+                  clearAttempt(userId)
+                }}
               >
-                <SelectTrigger className="h-10 w-full sm:w-80">
+                <SelectTrigger aria-label="Cenario do pedido" className="h-10 w-full sm:w-80">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="confirmed">Pagamento confirmado</SelectItem>
+                  <SelectItem value="pending">Pedido pendente</SelectItem>
                   <SelectItem value="declined">Pagamento recusado</SelectItem>
                   <SelectItem value="timeout-before-create">
                     Timeout antes do pedido
@@ -319,13 +478,13 @@ function CheckoutPage() {
               total={cart.totals.totalEth}
             />
             {quote ? (
-              <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <p className="flex items-center gap-2 break-all text-sm text-muted-foreground">
                 <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
                 Cotacao {quote.id} valida ate {formatDate(quote.expiresAt)}
               </p>
             ) : null}
             {statusMessage ? (
-              <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
+              <p role={statusIsError ? 'alert' : 'status'} className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
                 {statusMessage}
               </p>
             ) : null}
@@ -333,14 +492,14 @@ function CheckoutPage() {
               <Button
                 variant="outline"
                 onClick={() => void handleQuote()}
-                disabled={quoteMutation.isPending}
+                disabled={quoteMutation.isPending || orderMutation.isPending}
               >
                 <RefreshCw className="size-4" aria-hidden="true" />
                 {quoteMutation.isPending ? 'Atualizando...' : 'Revalidar cotacao'}
               </Button>
               <Button
                 onClick={() => void handleConfirm()}
-                disabled={!canCheckout || orderMutation.isPending}
+                disabled={!canCheckout || orderMutation.isPending || quoteMutation.isPending}
               >
                 <CheckCircle2 className="size-4" aria-hidden="true" />
                 {orderMutation.isPending ? 'Confirmando...' : 'Confirmar compra'}
@@ -413,28 +572,30 @@ function StateCard({
   )
 }
 
-function getOrCreateAttempt(quoteId: string) {
-  const existing = localStorage.getItem(checkoutAttemptKey)
-
-  if (existing) {
-    const parsed = JSON.parse(existing) as { quoteId: string; key: string }
-
-    if (parsed.quoteId === quoteId) {
-      return parsed.key
-    }
+function readAttempt(userId: string): CheckoutAttempt | null {
+  try {
+    const raw = localStorage.getItem(checkoutAttemptKey)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as CheckoutAttempt
+    return parsed.userId === userId && parsed.quoteId && parsed.key ? parsed : null
+  } catch {
+    return null
   }
-
-  return persistAttempt(quoteId)
 }
 
-function persistAttempt(quoteId: string) {
-  const key = `checkout-${crypto.randomUUID()}`
-  localStorage.setItem(checkoutAttemptKey, JSON.stringify({ quoteId, key }))
+function persistAttempt(input: Omit<CheckoutAttempt, 'key'>) {
+  const existing = readAttempt(input.userId)
+  const key = existing?.quoteId === input.quoteId &&
+    existing.walletId === input.walletId &&
+    existing.network === input.network
+    ? existing.key
+    : `checkout-${crypto.randomUUID()}`
+  localStorage.setItem(checkoutAttemptKey, JSON.stringify({ ...input, key }))
   return key
 }
 
-function clearAttempt() {
-  localStorage.removeItem(checkoutAttemptKey)
+function clearAttempt(userId?: string) {
+  if (!userId || readAttempt(userId)) localStorage.removeItem(checkoutAttemptKey)
 }
 
 function getErrorMessage(error: unknown) {

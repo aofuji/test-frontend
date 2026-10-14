@@ -38,9 +38,12 @@ export function listWallets(userId: string | null): WalletResult<Wallet[]> {
 
 export function getWallet(userId: string, walletId: string) {
   const state = readState()
-  const wallet = state.walletsByUser[userId]?.find(
+  state.walletsByUser[userId] ??= seedWallets(userId)
+  const wallet = state.walletsByUser[userId].find(
     (candidate) => candidate.id === walletId,
   )
+
+  writeState(state)
 
   return wallet ?? null
 }
@@ -70,13 +73,13 @@ export function createWallet(
   const state = readState()
   const wallets = state.walletsByUser[userId] ?? seedWallets(userId)
   const now = new Date().toISOString()
-  const shouldDefault = payload.isDefault ?? wallets.length === 0
+  const shouldDefault = payload.isDefault || payload.kind === 'primary' || wallets.length === 0
   const wallet: Wallet = {
     id: `wallet-${crypto.randomUUID()}`,
     label: payload.label.trim(),
     address: payload.address.trim(),
     network: payload.network,
-    kind: payload.kind ?? (shouldDefault ? 'primary' : 'secondary'),
+    kind: shouldDefault ? 'primary' : 'secondary',
     status: 'connected',
     isDefault: shouldDefault,
     createdAt: now,
@@ -130,23 +133,55 @@ export function updateWallet(
     label: payload.label ?? wallet.label,
     address: payload.address ?? wallet.address,
     network: payload.network ?? wallet.network,
+    kind: payload.kind,
   })
 
   if (validation) {
     return validation
   }
 
-  if (payload.isDefault) {
+  if (payload.status && payload.status !== 'connected' && payload.status !== 'disconnected') {
+    return {
+      ok: false,
+      status: 400,
+      error: {
+        code: 'WALLET_VALIDATION_ERROR',
+        message: 'Confira os dados da carteira.',
+        fieldErrors: { status: 'Estado de conexao invalido.' },
+      },
+    }
+  }
+
+  const nextDefault = payload.isDefault === true || payload.kind === 'primary'
+  if (payload.kind === 'secondary' && wallet.isDefault && wallets.length === 1) {
+    return {
+      ok: false,
+      status: 400,
+      error: {
+        code: 'WALLET_VALIDATION_ERROR',
+        message: 'Cadastre outra carteira antes de alterar a principal.',
+        fieldErrors: { kind: 'Uma carteira principal e necessaria.' },
+      },
+    }
+  }
+
+  if (nextDefault) {
     markSingleDefault(wallets)
+  } else if (payload.kind === 'secondary' && wallet.isDefault) {
+    const replacement = wallets.find((candidate) => candidate.id !== wallet.id)
+    if (replacement) {
+      replacement.isDefault = true
+      replacement.kind = 'primary'
+    }
   }
 
   Object.assign(wallet, {
     label: payload.label?.trim() ?? wallet.label,
     address: payload.address?.trim() ?? wallet.address,
     network: payload.network ?? wallet.network,
-    kind: payload.kind ?? wallet.kind,
+    kind: nextDefault ? 'primary' : payload.kind ?? wallet.kind,
     status: payload.status ?? wallet.status,
-    isDefault: payload.isDefault ?? wallet.isDefault,
+    isDefault: nextDefault ? true : payload.kind === 'secondary' ? false : wallet.isDefault,
     updatedAt: new Date().toISOString(),
   })
 
@@ -191,6 +226,7 @@ function validateWallet(payload: {
   label: string
   address: string
   network: WalletNetwork
+  kind?: WalletKind
 }): WalletResult<never> | null {
   const fieldErrors: Record<string, string> = {}
 
@@ -202,8 +238,12 @@ function validateWallet(payload: {
     fieldErrors.address = 'Informe um endereco EVM valido.'
   }
 
-  if (!payload.network) {
-    fieldErrors.network = 'Selecione uma rede.'
+  if (!['ethereum', 'polygon', 'base'].includes(payload.network)) {
+    fieldErrors.network = 'Selecione uma rede valida.'
+  }
+
+  if (payload.kind && payload.kind !== 'primary' && payload.kind !== 'secondary') {
+    fieldErrors.kind = 'Selecione um tipo valido.'
   }
 
   if (Object.keys(fieldErrors).length === 0) {

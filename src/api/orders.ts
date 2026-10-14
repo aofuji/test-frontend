@@ -20,3 +20,12 @@ export async function getOrder(orderId: string, signal?: AbortSignal) {
 
   return response.data.order
 }
+
+export async function getOrderByAttempt(idempotencyKey: string, signal?: AbortSignal) {
+  const response = await apiClient.get<OrderResponse>(
+    `/orders/attempts/${encodeURIComponent(idempotencyKey)}`,
+    { signal },
+  )
+
+  return response.data.order
+}

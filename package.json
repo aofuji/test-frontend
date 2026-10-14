@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "test:cart": "node tests/cart-state.test.mjs",
+    "test:checkout": "node tests/checkout-api.test.mjs",
+    "test:checkout:browser": "node tests/checkout-browser.mjs",
     "test:cart:browser": "node tests/cart-browser.mjs",
     "preview": "vite preview"
   },

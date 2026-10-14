@@ -31,6 +31,7 @@ type StoredCart = {
 type PersistedCartState = {
   carts: Record<string, StoredCart>
   quotes?: Record<string, StoredQuote>
+  appliedOrderIds?: string[]
 }
 
 type StoredQuote = {
@@ -90,8 +91,15 @@ export function getStoredQuote(ownerKey: string, quoteId: string) {
 export function removePurchasedCartItems(
   ownerKey: string,
   purchasedItems: Array<{ nftId: string; editionId: string; quantity: number }>,
+  orderId: string,
 ) {
   const state = readState()
+  state.appliedOrderIds ??= []
+
+  if (state.appliedOrderIds.includes(orderId)) {
+    return
+  }
+
   const cart = getStoredCart(state, ownerKey)
 
   for (const purchasedItem of purchasedItems) {
@@ -115,6 +123,8 @@ export function removePurchasedCartItems(
   }
 
   cart.updatedAt = new Date().toISOString()
+  state.appliedOrderIds.push(orderId)
+  invalidateQuotes(state, ownerKey)
   writeState(state)
 }
 

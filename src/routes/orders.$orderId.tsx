@@ -1,7 +1,9 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
 import { CircleAlert, CircleCheck, Clock3 } from 'lucide-react'
 
 import { useOrder } from '@/api/hooks/useOrders'
+import { useSession } from '@/api/hooks/useAuth'
 import { ApiError } from '@/api/http/errors'
 import type { PaymentStatus } from '@/api/types/order'
 import { Badge } from '@/components/ui/badge'
@@ -20,6 +22,21 @@ function OrderDetailsPage() {
   const { orderId } = Route.useParams()
   const orderQuery = useOrder(orderId)
   const order = orderQuery.data
+  const userId = useSession().data?.user.id
+
+  useEffect(() => {
+    if (order?.status !== 'confirmed' || !userId) return
+    try {
+      const raw = localStorage.getItem('nft-marketplace.checkout-attempt.v1')
+      if (!raw) return
+      const attempt = JSON.parse(raw) as { userId?: string; quoteId?: string }
+      if (attempt.userId === userId && attempt.quoteId === order.quoteId) {
+        localStorage.removeItem('nft-marketplace.checkout-attempt.v1')
+      }
+    } catch {
+      // A malformed local attempt must not hide a valid receipt.
+    }
+  }, [order?.status, order?.quoteId, userId])
 
   if (orderQuery.isLoading) {
     return (
@@ -43,6 +60,9 @@ function OrderDetailsPage() {
             </p>
             <Button asChild>
               <Link to="/cart">Voltar ao carrinho</Link>
+            </Button>
+            <Button type="button" variant="outline" onClick={() => void orderQuery.refetch()}>
+              Tentar novamente
             </Button>
           </CardContent>
         </Card>
@@ -147,7 +167,7 @@ function StatusBadge({ status }: { status: PaymentStatus }) {
     status === 'confirmed' ? CircleCheck : status === 'declined' ? CircleAlert : Clock3
 
   return (
-    <Badge variant={status === 'declined' ? 'destructive' : 'default'}>
+    <Badge role="status" aria-live="polite" variant={status === 'declined' ? 'destructive' : 'default'}>
       <Icon className="size-3" aria-hidden="true" />
       {statusLabel(status)}
     </Badge>

@@ -26,6 +26,9 @@ type IdempotencyRecord = {
 type PersistedOrderState = {
   ordersByUser: Record<string, Order[]>
   idempotencyByUser: Record<string, Record<string, IdempotencyRecord>>
+  pendingReadsByOrder?: Record<string, number>
+  timedOutBeforeCreation?: string[]
+  expiredSessionAttempts?: string[]
 }
 
 type OrderResult<T> =
@@ -34,6 +37,28 @@ type OrderResult<T> =
 
 export function resetOrderState() {
   localStorage.removeItem(orderStateKey)
+}
+
+export function shouldTimeoutBeforeCreation(userId: string | null, key: string) {
+  if (!userId || !key) return false
+  const state = readState()
+  state.timedOutBeforeCreation ??= []
+  const scopedKey = `${userId}:${key}`
+  if (state.timedOutBeforeCreation.includes(scopedKey)) return false
+  state.timedOutBeforeCreation.push(scopedKey)
+  writeState(state)
+  return true
+}
+
+export function shouldExpireSession(userId: string | null, key: string) {
+  if (!userId || !key) return false
+  const state = readState()
+  state.expiredSessionAttempts ??= []
+  const scopedKey = `${userId}:${key}`
+  if (state.expiredSessionAttempts.includes(scopedKey)) return false
+  state.expiredSessionAttempts.push(scopedKey)
+  writeState(state)
+  return true
 }
 
 export function getOrder(userId: string | null, orderId: string): OrderResult<Order> {
@@ -57,19 +82,50 @@ export function getOrder(userId: string | null, orderId: string): OrderResult<Or
     }
   }
 
+  if (order.status === 'pending') {
+    state.pendingReadsByOrder ??= {}
+    const reads = (state.pendingReadsByOrder[order.id] ?? 0) + 1
+    state.pendingReadsByOrder[order.id] = reads
+
+    if (reads >= 2) {
+      order.status = 'confirmed'
+      order.transactionId = `tx-${crypto.randomUUID().slice(0, 12)}`
+      order.updatedAt = new Date().toISOString()
+    }
+
+    writeState(state)
+
+    if (order.status === 'confirmed') {
+      applyConfirmedCart(userId, order)
+    }
+  }
+
   return { ok: true, data: order }
+}
+
+export function getOrderByAttempt(
+  userId: string | null,
+  idempotencyKey: string,
+): OrderResult<Order> {
+  if (!userId) return unauthenticated()
+  const state = readState()
+  const record = state.idempotencyByUser[userId]?.[idempotencyKey]
+  if (!record) return orderNotFound()
+  return getOrder(userId, record.orderId)
+}
+
+export function hasOrderAttempt(userId: string | null, idempotencyKey: string) {
+  if (!userId) return false
+  const state = readState()
+  return Boolean(state.idempotencyByUser[userId]?.[idempotencyKey])
 }
 
 export function createOrder(
   userId: string | null,
   payload: CreateOrderRequest,
 ): OrderResult<Order> {
-  if (!userId || payload.scenario === 'session-expired') {
+  if (!userId) {
     return unauthenticated()
-  }
-
-  if (payload.scenario === 'error') {
-    return serverError()
   }
 
   const validation = validateOrderPayload(payload)
@@ -100,8 +156,15 @@ export function createOrder(
     )
 
     if (existingOrder) {
+      if (existingOrder.status === 'confirmed' && !existingRecord.cartApplied) {
+        applyConfirmedCart(userId, existingOrder)
+      }
       return { ok: true, data: existingOrder }
     }
+  }
+
+  if (payload.scenario === 'error') {
+    return serverError()
   }
 
   const ownerKey = getOwnerKey(userId)
@@ -181,8 +244,23 @@ export function createOrder(
     }
   }
 
+  if (wallet.status !== 'connected') {
+    return {
+      ok: false,
+      status: 409,
+      error: {
+        code: 'PAYMENT_DECLINED',
+        message: 'Carteira desconectada. Conecte-a antes de confirmar.',
+      },
+    }
+  }
+
   const now = new Date().toISOString()
-  const status = payload.scenario === 'declined' ? 'declined' : 'confirmed'
+  const status = payload.scenario === 'declined'
+    ? 'declined'
+    : payload.scenario === 'pending'
+      ? 'pending'
+      : 'confirmed'
   const order: Order = {
     id: `order-${crypto.randomUUID()}`,
     status,
@@ -212,11 +290,28 @@ export function createOrder(
   writeState(state)
 
   if (order.status === 'confirmed') {
-    removePurchasedCartItems(ownerKey, order.items)
-    markCartApplied(userId, payload.idempotencyKey)
+    applyConfirmedCart(userId, order)
   }
 
   return { ok: true, data: order }
+}
+
+function applyConfirmedCart(userId: string, order: Order) {
+  const state = readState()
+  const recordEntry = Object.entries(state.idempotencyByUser[userId] ?? {})
+    .find(([, record]) => record.orderId === order.id)
+
+  if (!recordEntry || recordEntry[1].cartApplied) return
+  removePurchasedCartItems(getOwnerKey(userId), order.items, order.id)
+  markCartApplied(userId, recordEntry[0])
+}
+
+function orderNotFound(): OrderResult<never> {
+  return {
+    ok: false,
+    status: 404,
+    error: { code: 'ORDER_NOT_FOUND', message: 'Pedido nao encontrado para esta tentativa.' },
+  }
 }
 
 function markCartApplied(userId: string, idempotencyKey: string) {
@@ -290,8 +385,8 @@ function validateOrderPayload(payload: CreateOrderRequest): OrderResult<never> |
     fieldErrors.walletId = 'Selecione uma carteira.'
   }
 
-  if (!payload.network) {
-    fieldErrors.network = 'Selecione a rede.'
+  if (!['ethereum', 'polygon', 'base'].includes(payload.network)) {
+    fieldErrors.network = 'Selecione uma rede valida.'
   }
 
   if (!payload.idempotencyKey) {

@@ -51,3 +51,12 @@ export async function createQuote(payload: QuoteRequest) {
 
   return response.data.quote
 }
+
+export async function getQuote(quoteId: string, signal?: AbortSignal) {
+  const response = await apiClient.get<QuoteResponse>(
+    `/quotes/${encodeURIComponent(quoteId)}`,
+    { signal },
+  )
+
+  return response.data.quote
+}
