@@ -5,6 +5,7 @@ import type {
   RegisterRequest,
   UserProfile,
 } from '@/api/types/auth'
+import { mergeGuestCartIntoUser } from './cartState'
 import { mockUsers, type MockUserRecord } from './fixtures/users'
 
 const authStateKey = 'nft-marketplace.auth-state.v1'
@@ -148,6 +149,12 @@ export function getCurrentSession(): AuthResult<AuthSession | null> {
   }
 }
 
+export function getCurrentUserId() {
+  const session = getCurrentSession()
+
+  return session.ok && session.data ? session.data.user.id : null
+}
+
 export function logoutUser() {
   const state = readState()
   state.session = null
@@ -218,6 +225,7 @@ function persistSession(
     expiresAt,
   }
   writeState(state)
+  mergeGuestCartIntoUser(user.id)
 
   return {
     ok: true,

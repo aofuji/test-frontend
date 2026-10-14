@@ -29,6 +29,7 @@ export function useLogin() {
     onSuccess: (session) => {
       queryClient.setQueryData(queryKeys.auth.session(), session)
       queryClient.removeQueries({ queryKey: queryKeys.auth.private() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
     },
   })
 }
@@ -41,6 +42,7 @@ export function useRegister() {
     onSuccess: (session) => {
       queryClient.setQueryData(queryKeys.auth.session(), session)
       queryClient.removeQueries({ queryKey: queryKeys.auth.private() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
     },
   })
 }
@@ -53,6 +55,7 @@ export function useLogout() {
     onSettled: () => {
       queryClient.setQueryData(queryKeys.auth.session(), null)
       queryClient.removeQueries({ queryKey: queryKeys.auth.private() })
+      void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
     },
   })
 }

@@ -14,4 +14,8 @@ export const queryKeys = {
     detail: (nftId: string, scenario?: NftListParams['scenario']) =>
       [...queryKeys.nfts.all, 'detail', nftId, scenario] as const,
   },
+  cart: {
+    all: ['cart'] as const,
+    current: () => [...queryKeys.cart.all, 'current'] as const,
+  },
 }

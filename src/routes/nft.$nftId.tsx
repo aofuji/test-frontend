@@ -1,13 +1,23 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ArrowLeft, RotateCcw } from 'lucide-react'
+import { ArrowLeft, RotateCcw, ShoppingCart } from 'lucide-react'
+import { useState } from 'react'
 
+import { useAddCartItem } from '@/api/hooks/useCart'
 import { useNftDetail } from '../api/hooks/useNfts'
 import type { MockScenario } from '../api/types/nft'
+import { ApiError } from '@/api/http/errors'
 import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 type NftDetailSearch = {
   scenario: MockScenario
@@ -17,6 +27,11 @@ function NftDetailsPage() {
   const { nftId } = Route.useParams()
   const { scenario } = Route.useSearch()
   const nftQuery = useNftDetail(nftId, scenario)
+  const addCartItem = useAddCartItem()
+  const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null)
+  const availableEditions = nftQuery.data?.editions.filter((edition) => edition.available) ?? []
+  const selectedEdition = selectedEditionId ?? availableEditions[0]?.id
+  const addError = addCartItem.error instanceof ApiError ? addCartItem.error : null
 
   return (
     <section className="space-y-8">
@@ -107,6 +122,76 @@ function NftDetailsPage() {
                     </div>
                   ))}
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardContent className="space-y-4 p-5">
+                <div>
+                  <h2 className="text-lg font-semibold">Adicionar ao carrinho</h2>
+                  <p className="text-sm text-muted-foreground">
+                    Selecione uma edicao disponivel para gerar a cotacao depois.
+                  </p>
+                </div>
+                <Separator />
+                <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+                  <Select
+                    value={selectedEdition}
+                    onValueChange={(value) => setSelectedEditionId(value)}
+                    disabled={availableEditions.length === 0}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione uma edicao" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {nftQuery.data.editions.map((edition) => (
+                        <SelectItem
+                          key={edition.id}
+                          value={edition.id}
+                          disabled={!edition.available}
+                        >
+                          {edition.label} ·{' '}
+                          {edition.available ? 'disponivel' : 'vendida'}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    type="button"
+                    disabled={
+                      addCartItem.isPending ||
+                      !nftQuery.data.available ||
+                      !selectedEdition
+                    }
+                    onClick={() => {
+                      if (!selectedEdition) {
+                        return
+                      }
+
+                      addCartItem.mutate({
+                        nftId: nftQuery.data.id,
+                        editionId: selectedEdition,
+                        quantity: 1,
+                      })
+                    }}
+                  >
+                    <ShoppingCart aria-hidden="true" />
+                    {addCartItem.isPending ? 'Adicionando...' : 'Adicionar'}
+                  </Button>
+                </div>
+                {addCartItem.isSuccess ? (
+                  <p className="rounded-lg border border-primary/25 bg-primary/10 p-3 text-sm text-primary">
+                    NFT adicionado ao carrinho.
+                  </p>
+                ) : null}
+                {addError ? (
+                  <p className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
+                    {addError.message}
+                  </p>
+                ) : null}
+                <Button asChild variant="outline">
+                  <Link to="/cart">Ver carrinho</Link>
+                </Button>
               </CardContent>
             </Card>
           </div>
