@@ -8,6 +8,7 @@ export type NftEdition = {
   id: string
   label: string
   available: boolean
+  stock?: number
 }
 
 export type Nft = {

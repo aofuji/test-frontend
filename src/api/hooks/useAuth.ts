@@ -25,8 +25,11 @@ export function useLogin() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    scope: { id: 'cart-session' },
     mutationFn: (payload: LoginRequest) => login(payload),
-    onSuccess: (session) => {
+    onSuccess: async (session) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.cart.all })
+      queryClient.removeQueries({ queryKey: queryKeys.cart.all })
       queryClient.setQueryData(queryKeys.auth.session(), session)
       queryClient.removeQueries({ queryKey: queryKeys.auth.private() })
       void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
@@ -38,8 +41,11 @@ export function useRegister() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    scope: { id: 'cart-session' },
     mutationFn: (payload: RegisterRequest) => register(payload),
-    onSuccess: (session) => {
+    onSuccess: async (session) => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.cart.all })
+      queryClient.removeQueries({ queryKey: queryKeys.cart.all })
       queryClient.setQueryData(queryKeys.auth.session(), session)
       queryClient.removeQueries({ queryKey: queryKeys.auth.private() })
       void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
@@ -51,8 +57,11 @@ export function useLogout() {
   const queryClient = useQueryClient()
 
   return useMutation({
+    scope: { id: 'cart-session' },
     mutationFn: logout,
-    onSettled: () => {
+    onSuccess: async () => {
+      await queryClient.cancelQueries({ queryKey: queryKeys.cart.all })
+      queryClient.removeQueries({ queryKey: queryKeys.cart.all })
       queryClient.setQueryData(queryKeys.auth.session(), null)
       queryClient.removeQueries({ queryKey: queryKeys.auth.private() })
       void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })

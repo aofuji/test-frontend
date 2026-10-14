@@ -49,7 +49,12 @@ function RootLayout() {
               </Link>
             ))}
           </nav>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {logoutMutation.error ? (
+              <p role="alert" className="text-sm text-destructive">
+                {logoutMutation.error.message} Tente sair novamente.
+              </p>
+            ) : null}
             {sessionQuery.data ? (
               <>
                 <span className="hidden max-w-40 truncate text-sm text-muted-foreground sm:inline">
@@ -61,7 +66,7 @@ function RootLayout() {
                   disabled={logoutMutation.isPending}
                   onClick={() => {
                     logoutMutation.mutate(undefined, {
-                      onSettled: () => {
+                      onSuccess: () => {
                         window.dispatchEvent(new Event('nft-marketplace:logout'))
                         window.location.assign('/')
                       },

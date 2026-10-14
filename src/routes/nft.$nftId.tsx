@@ -140,7 +140,7 @@ function NftDetailsPage() {
                     onValueChange={(value) => setSelectedEditionId(value)}
                     disabled={availableEditions.length === 0}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger aria-label="Edicao do NFT" className="w-full">
                       <SelectValue placeholder="Selecione uma edicao" />
                     </SelectTrigger>
                     <SelectContent>
@@ -180,12 +180,12 @@ function NftDetailsPage() {
                   </Button>
                 </div>
                 {addCartItem.isSuccess ? (
-                  <p className="rounded-lg border border-primary/25 bg-primary/10 p-3 text-sm text-primary">
+                  <p role="status" className="rounded-lg border border-primary/25 bg-primary/10 p-3 text-sm text-primary">
                     NFT adicionado ao carrinho.
                   </p>
                 ) : null}
                 {addError ? (
-                  <p className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
+                  <p role="alert" className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
                     {addError.message}
                   </p>
                 ) : null}

@@ -7,6 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
+    "test:cart": "node tests/cart-state.test.mjs",
+    "test:cart:browser": "node tests/cart-browser.mjs",
     "preview": "vite preview"
   },
   "dependencies": {

@@ -30,6 +30,12 @@ type StoredCart = {
 
 type PersistedCartState = {
   carts: Record<string, StoredCart>
+  quotes?: Record<string, StoredQuote>
+}
+
+type StoredQuote = {
+  ownerKey: string
+  quote: Quote
 }
 
 type CartResult<T> =
@@ -70,6 +76,48 @@ export function resetCartState() {
   localStorage.removeItem(guestIdKey)
 }
 
+export function getStoredQuote(ownerKey: string, quoteId: string) {
+  const state = readState()
+  const storedQuote = state.quotes?.[quoteId]
+
+  if (!storedQuote || storedQuote.ownerKey !== ownerKey) {
+    return null
+  }
+
+  return storedQuote.quote
+}
+
+export function removePurchasedCartItems(
+  ownerKey: string,
+  purchasedItems: Array<{ nftId: string; editionId: string; quantity: number }>,
+) {
+  const state = readState()
+  const cart = getStoredCart(state, ownerKey)
+
+  for (const purchasedItem of purchasedItems) {
+    const item = cart.items.find(
+      (candidate) =>
+        candidate.nftId === purchasedItem.nftId &&
+        candidate.editionId === purchasedItem.editionId,
+    )
+
+    if (!item) {
+      continue
+    }
+
+    item.quantity -= purchasedItem.quantity
+  }
+
+  cart.items = cart.items.filter((item) => item.quantity > 0)
+
+  if (cart.items.length === 0) {
+    cart.couponCode = null
+  }
+
+  cart.updatedAt = new Date().toISOString()
+  writeState(state)
+}
+
 export function mergeGuestCartIntoUser(userId: string) {
   const state = readState()
   const guestKey = `guest:${getGuestId()}`
@@ -103,6 +151,12 @@ export function mergeGuestCartIntoUser(userId: string) {
     userCart.couponCode = guestCart.couponCode
   }
 
+  userCart.items = userCart.items.filter((item) => {
+    item.quantity = Math.min(item.quantity, getMaxQuantity(item.nftId, item.editionId))
+    return item.quantity > 0
+  })
+  invalidateQuotes(state, guestKey)
+  invalidateQuotes(state, userKey)
   userCart.updatedAt = new Date().toISOString()
   delete state.carts[guestKey]
   writeState(state)
@@ -179,6 +233,7 @@ export function addCartItem(
   }
 
   cart.updatedAt = new Date().toISOString()
+  invalidateQuotes(state, ownerKey)
   writeState(state)
 
   return { ok: true, data: buildCart(ownerKey, cart, payload.scenario) }
@@ -207,11 +262,11 @@ export function updateCartItem(
     return itemNotFound()
   }
 
-  if (typeof payload.quantity === 'number') {
+  if (payload.quantity !== undefined) {
     const maxQuantity = getMaxQuantity(item.nftId, item.editionId)
 
-    if (payload.quantity < 1) {
-      return validationError('quantity', 'Quantidade deve ser maior que zero.')
+    if (!Number.isInteger(payload.quantity) || payload.quantity < 1) {
+      return validationError('quantity', 'Quantidade deve ser um inteiro maior que zero.')
     }
 
     if (payload.scenario === 'quantity-exceeded' || payload.quantity > maxQuantity) {
@@ -222,6 +277,7 @@ export function updateCartItem(
   }
 
   cart.updatedAt = new Date().toISOString()
+  invalidateQuotes(state, ownerKey)
   writeState(state)
 
   return { ok: true, data: buildCart(ownerKey, cart, payload.scenario) }
@@ -252,6 +308,7 @@ export function removeCartItem(
 
   cart.items = nextItems
   cart.updatedAt = new Date().toISOString()
+  invalidateQuotes(state, ownerKey)
   writeState(state)
 
   return { ok: true, data: buildCart(ownerKey, cart, scenario) }
@@ -276,6 +333,7 @@ export function applyCoupon(
   if (!couponCode) {
     cart.couponCode = null
     cart.updatedAt = new Date().toISOString()
+    invalidateQuotes(state, ownerKey)
     writeState(state)
     return { ok: true, data: buildCart(ownerKey, cart, scenario) }
   }
@@ -288,6 +346,7 @@ export function applyCoupon(
 
   cart.couponCode = couponCode.trim().toUpperCase()
   cart.updatedAt = new Date().toISOString()
+  invalidateQuotes(state, ownerKey)
   writeState(state)
 
   return { ok: true, data: buildCart(ownerKey, cart, scenario) }
@@ -318,17 +377,23 @@ export function createQuote(
     return cartResult
   }
 
-  if (cartResult.data.items.some((item) => !item.available)) {
+  if (cartResult.data.items.length === 0 || cartResult.data.items.some((item) => !item.available)) {
     return soldOutError()
   }
 
+  const quote: Quote = {
+    id: `quote-${crypto.randomUUID()}`,
+    cart: cartResult.data,
+    expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
+  }
+  const state = readState()
+  state.quotes ??= {}
+  state.quotes[quote.id] = { ownerKey, quote }
+  writeState(state)
+
   return {
     ok: true,
-    data: {
-      id: `quote-${crypto.randomUUID()}`,
-      cart: cartResult.data,
-      expiresAt: new Date(Date.now() + 5 * 60 * 1000).toISOString(),
-    },
+    data: quote,
   }
 }
 
@@ -345,7 +410,8 @@ function buildCart(
       total.plus(new Decimal(item.unitPriceEth).times(item.quantity)),
     new Decimal('0'),
   )
-  const coupon = storedCart.couponCode ? getCoupon(storedCart.couponCode) : null
+  const couponResult = storedCart.couponCode ? validateCoupon(storedCart.couponCode) : null
+  const coupon = couponResult?.ok ? couponResult.data : null
   const discount = coupon ? subtotal.times(coupon.discountRate) : new Decimal('0')
   const networkFee = subtotal.gt(0)
     ? Decimal.max(subtotal.minus(discount).times(networkFeeRate), minimumNetworkFeeEth)
@@ -406,14 +472,22 @@ function readState(): PersistedCartState {
   const raw = localStorage.getItem(cartStateKey)
 
   if (!raw) {
-    return { carts: {} }
+    return { carts: {}, quotes: {} }
   }
 
   try {
     return JSON.parse(raw) as PersistedCartState
   } catch {
     resetCartState()
-    return { carts: {} }
+    return { carts: {}, quotes: {} }
+  }
+}
+
+function invalidateQuotes(state: PersistedCartState, ownerKey: string) {
+  for (const [id, stored] of Object.entries(state.quotes ?? {})) {
+    if (stored.ownerKey === ownerKey) {
+      delete state.quotes![id]
+    }
   }
 }
 
@@ -438,7 +512,7 @@ function getMaxQuantity(nftId: string, editionId: string) {
   const nft = findNftById(nftId)
   const edition = nft?.editions.find((candidate) => candidate.id === editionId)
 
-  return nft?.available && edition?.available ? 1 : 0
+  return nft?.available && edition?.available ? (edition.stock ?? 1) : 0
 }
 
 function getItemId(nftId: string, editionId: string) {
@@ -446,8 +520,8 @@ function getItemId(nftId: string, editionId: string) {
 }
 
 function validateItemPayload(payload: AddCartItemRequest): CartResult<never> | null {
-  if (payload.quantity < 1) {
-    return validationError('quantity', 'Quantidade deve ser maior que zero.')
+  if (!Number.isInteger(payload.quantity) || payload.quantity < 1) {
+    return validationError('quantity', 'Quantidade deve ser um inteiro maior que zero.')
   }
 
   const nft = findNftById(payload.nftId)

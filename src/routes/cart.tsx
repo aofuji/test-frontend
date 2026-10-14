@@ -1,3 +1,5 @@
+import { useIsMutating } from '@tanstack/react-query'
+import { queryKeys } from '@/api/queryKeys'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, type FormEvent, type ReactNode } from 'react'
 import { RotateCcw, ShoppingCart, Trash2 } from 'lucide-react'
@@ -25,6 +27,14 @@ function CartPage() {
   const applyCoupon = useApplyCartCoupon()
   const createQuote = useCreateQuote()
   const navigate = useNavigate()
+  const isBusy = useIsMutating({ mutationKey: queryKeys.cart.all }) > 0
+
+  function resetErrors() {
+    updateItem.reset()
+    removeItem.reset()
+    applyCoupon.reset()
+    createQuote.reset()
+  }
   const [couponCode, setCouponCode] = useState('')
   const mutationError =
     updateItem.error instanceof ApiError
@@ -39,10 +49,14 @@ function CartPage() {
 
   function handleCouponSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (isBusy || !couponCode.trim()) return
+    resetErrors()
     applyCoupon.mutate({ couponCode: couponCode.trim() })
   }
 
   function handleCheckout() {
+    if (isBusy) return
+    resetErrors()
     createQuote.mutate(
       {},
       {
@@ -54,7 +68,7 @@ function CartPage() {
   }
 
   return (
-    <section className="space-y-8">
+    <section className="space-y-8" aria-busy={cartQuery.isFetching || isBusy}>
       <div className="space-y-3">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
           Carrinho
@@ -68,10 +82,11 @@ function CartPage() {
         </p>
       </div>
 
-      {cartQuery.isLoading ? <CartSkeleton /> : null}
+      {cartQuery.isPending ? <CartSkeleton /> : null}
 
       {cartQuery.isError ? (
         <StateCard
+          role="alert"
           title="Nao foi possivel carregar o carrinho"
           description={cartQuery.error.message}
           action={
@@ -112,11 +127,15 @@ function CartPage() {
               <CartLineItem
                 key={item.id}
                 item={item}
-                isUpdating={updateItem.isPending || removeItem.isPending}
-                onQuantityChange={(quantity) =>
+                isUpdating={isBusy}
+                onQuantityChange={(quantity) => {
+                  resetErrors()
                   updateItem.mutate({ itemId: item.id, payload: { quantity } })
-                }
-                onRemove={() => removeItem.mutate(item.id)}
+                }}
+                onRemove={() => {
+                  resetErrors()
+                  removeItem.mutate(item.id)
+                }}
               />
             ))}
           </div>
@@ -127,7 +146,7 @@ function CartPage() {
             </CardHeader>
             <CardContent className="space-y-5">
               {mutationError ? (
-                <p className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
+                <p role="alert" id="cart-mutation-error" className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
                   {mutationError.message}
                 </p>
               ) : null}
@@ -139,12 +158,14 @@ function CartPage() {
                 <div className="flex gap-2">
                   <Input
                     id="coupon"
+                    disabled={isBusy}
+                    aria-describedby={applyCoupon.error ? "cart-mutation-error" : undefined}
                     value={couponCode}
                     onChange={(event) => setCouponCode(event.target.value)}
                     placeholder="SAVE10"
                     aria-invalid={Boolean(applyCoupon.error)}
                   />
-                  <Button type="submit" disabled={applyCoupon.isPending}>
+                  <Button type="submit" disabled={isBusy || !couponCode.trim()}>
                     Aplicar
                   </Button>
                 </div>
@@ -157,7 +178,11 @@ function CartPage() {
                       type="button"
                       size="sm"
                       variant="ghost"
-                      onClick={() => applyCoupon.mutate({ couponCode: null })}
+                      disabled={isBusy}
+                      onClick={() => {
+                        resetErrors()
+                        applyCoupon.mutate({ couponCode: null })
+                      }}
                     >
                       Remover
                     </Button>
@@ -167,6 +192,9 @@ function CartPage() {
 
               <Separator />
 
+              <p role="status" className="text-sm text-muted-foreground">
+                {isBusy ? 'Atualizando carrinho e totais...' : 'Totais confirmados pela API.'}
+              </p>
               <dl className="space-y-3 text-sm">
                 <TotalRow label="Subtotal" value={cartQuery.data.totals.subtotalEth} />
                 <TotalRow
@@ -188,7 +216,7 @@ function CartPage() {
               <Button
                 className="w-full"
                 type="button"
-                disabled={createQuote.isPending}
+                disabled={isBusy || cartQuery.data.items.some((item) => !item.available)}
                 onClick={handleCheckout}
               >
                 {createQuote.isPending ? 'Gerando cotacao...' : 'Prosseguir ao checkout'}
@@ -220,9 +248,9 @@ function CartLineItem({
 }: CartLineItemProps) {
   return (
     <Card className={!item.available ? 'border-destructive/50' : undefined}>
-      <CardContent className="grid gap-4 p-5 sm:grid-cols-[120px_1fr_auto]">
+      <CardContent className="grid gap-4 p-5 sm:grid-cols-[120px_minmax(0,1fr)_auto]">
         <div className="nft-art-surface aspect-square rounded-2xl from-zinc-950 via-violet-700 to-rose-300" />
-        <div className="space-y-3">
+        <div className="min-w-0 space-y-3 break-words">
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-xl font-semibold">{item.name}</h2>
@@ -245,7 +273,8 @@ function CartLineItem({
               type="button"
               variant="ghost"
               size="icon-sm"
-              disabled={isUpdating || item.quantity <= 1}
+              aria-label={`Diminuir quantidade de ${item.name}, ${item.editionLabel}`}
+              disabled={isUpdating || item.maxQuantity === 0 || item.quantity <= 1}
               onClick={() => onQuantityChange(item.quantity - 1)}
             >
               -
@@ -257,7 +286,8 @@ function CartLineItem({
               type="button"
               variant="ghost"
               size="icon-sm"
-              disabled={isUpdating || item.quantity >= item.maxQuantity}
+              aria-label={`Aumentar quantidade de ${item.name}, ${item.editionLabel}`}
+              disabled={isUpdating || !item.available || item.quantity >= item.maxQuantity}
               onClick={() => onQuantityChange(item.quantity + 1)}
             >
               +
@@ -267,6 +297,7 @@ function CartLineItem({
             type="button"
             variant="destructive"
             size="sm"
+            aria-label={`Remover ${item.name}, ${item.editionLabel}`}
             disabled={isUpdating}
             onClick={onRemove}
           >
@@ -302,13 +333,15 @@ function StateCard({
   title,
   description,
   action,
+  role = 'status',
 }: {
+  role?: 'status' | 'alert'
   title: string
   description: string
   action?: ReactNode
 }) {
   return (
-    <Card className="border-dashed">
+    <Card role={role} className="border-dashed">
       <CardContent className="grid min-h-80 place-items-center p-8 text-center">
         <div className="max-w-md space-y-4">
           <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
@@ -325,11 +358,12 @@ function StateCard({
 
 function CartSkeleton() {
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <div role="status" aria-label="Carregando carrinho" className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <span className="sr-only">Carregando carrinho...</span>
       <div className="space-y-4">
         {Array.from({ length: 2 }).map((_, index) => (
           <Card key={index}>
-            <CardContent className="grid gap-4 p-5 sm:grid-cols-[120px_1fr_auto]">
+            <CardContent className="grid gap-4 p-5 sm:grid-cols-[120px_minmax(0,1fr)_auto]">
               <Skeleton className="aspect-square rounded-2xl" />
               <div className="space-y-3">
                 <Skeleton className="h-6 w-56" />

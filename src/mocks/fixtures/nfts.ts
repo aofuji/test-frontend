@@ -12,7 +12,7 @@ export const nftFixtures: Nft[] = [
     priceEth: '1.20',
     available: true,
     editions: [
-      { id: 'aurora-001-a', label: 'Edition 1/3', available: true },
+      { id: 'aurora-001-a', label: 'Edition 1/3', available: true, stock: 5 },
       { id: 'aurora-001-b', label: 'Edition 2/3', available: false },
       { id: 'aurora-001-c', label: 'Edition 3/3', available: true },
     ],
@@ -71,7 +71,7 @@ export const nftFixtures: Nft[] = [
     priceEth: '0.32',
     available: true,
     editions: [
-      { id: 'pixel-reef-044-a', label: 'Edition 1/4', available: true },
+      { id: 'pixel-reef-044-a', label: 'Edition 1/4', available: true, stock: 3 },
       { id: 'pixel-reef-044-b', label: 'Edition 2/4', available: true },
       { id: 'pixel-reef-044-c', label: 'Edition 3/4', available: false },
       { id: 'pixel-reef-044-d', label: 'Edition 4/4', available: true },

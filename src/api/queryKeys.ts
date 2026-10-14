@@ -16,6 +16,15 @@ export const queryKeys = {
   },
   cart: {
     all: ['cart'] as const,
-    current: () => [...queryKeys.cart.all, 'current'] as const,
+    current: (owner = 'guest') => [...queryKeys.cart.all, 'current', owner] as const,
+  },
+  wallets: {
+    all: () => [...queryKeys.auth.private(), 'wallets'] as const,
+    list: () => [...queryKeys.wallets.all(), 'list'] as const,
+  },
+  orders: {
+    all: () => [...queryKeys.auth.private(), 'orders'] as const,
+    list: () => [...queryKeys.orders.all(), 'list'] as const,
+    detail: (orderId: string) => [...queryKeys.orders.all(), 'detail', orderId] as const,
   },
 }

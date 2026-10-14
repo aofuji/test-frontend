@@ -10,6 +10,13 @@ import type {
   QuoteRequest,
   UpdateCartItemRequest,
 } from '@/api/types/cart'
+import type { CreateOrderRequest, OrderErrorResponse } from '@/api/types/order'
+import type {
+  CreateWalletRequest,
+  UpdateWalletRequest,
+  WalletErrorResponse,
+  WalletScenario,
+} from '@/api/types/wallet'
 import type { NftListParams } from '../api/types/nft'
 import { findNftById, listNfts, parseMockScenario } from './apiState'
 import {
@@ -31,6 +38,13 @@ import {
   resetCartState,
   updateCartItem,
 } from './cartState'
+import { createOrder, getOrder, resetOrderState } from './orderState'
+import {
+  createWallet,
+  listWallets,
+  resetWalletState,
+  updateWallet,
+} from './walletState'
 
 export const handlers = [
   http.post('/api/auth/register', async ({ request }) => {
@@ -82,8 +96,72 @@ export const handlers = [
   http.post('/api/__mock/reset-auth', () => {
     resetAuthState()
     resetCartState()
+    resetWalletState()
+    resetOrderState()
 
     return HttpResponse.json({ ok: true })
+  }),
+
+  http.get('/api/wallets', ({ request }) => {
+    const scenario = getWalletScenario(request)
+
+    if (scenario === 'network-error') {
+      return HttpResponse.error()
+    }
+
+    const result = listWallets(getCurrentUserId())
+
+    return toWalletsResponse(result)
+  }),
+
+  http.post('/api/wallets', async ({ request }) => {
+    const payload = (await request.json()) as CreateWalletRequest
+
+    if (payload.scenario === 'network-error') {
+      return HttpResponse.error()
+    }
+
+    const result = createWallet(getCurrentUserId(), payload)
+
+    return toWalletResponse(result, 201)
+  }),
+
+  http.patch('/api/wallets/:walletId', async ({ params, request }) => {
+    const payload = (await request.json()) as UpdateWalletRequest
+
+    if (payload.scenario === 'network-error') {
+      return HttpResponse.error()
+    }
+
+    const result = updateWallet(
+      getCurrentUserId(),
+      String(params.walletId),
+      payload,
+    )
+
+    return toWalletResponse(result)
+  }),
+
+  http.post('/api/orders', async ({ request }) => {
+    const payload = (await request.json()) as CreateOrderRequest
+
+    if (payload.scenario === 'timeout-before-create') {
+      return HttpResponse.error()
+    }
+
+    const result = createOrder(getCurrentUserId(), payload)
+
+    if (payload.scenario === 'timeout-after-create' && result.ok) {
+      return HttpResponse.error()
+    }
+
+    return toOrderResponse(result, 201)
+  }),
+
+  http.get('/api/orders/:orderId', ({ params }) => {
+    const result = getOrder(getCurrentUserId(), String(params.orderId))
+
+    return toOrderResponse(result)
   }),
 
   http.get('/api/cart', ({ request }) => {
@@ -306,4 +384,57 @@ function toCartResponse(
   }
 
   return HttpResponse.json({ cart: result.data })
+}
+
+function toWalletsResponse(
+  result:
+    | { ok: true; data: unknown[] }
+    | { ok: false; status: number; error: WalletErrorResponse },
+) {
+  if (!result.ok) {
+    return HttpResponse.json(result.error, { status: result.status })
+  }
+
+  return HttpResponse.json({ wallets: result.data })
+}
+
+function toWalletResponse(
+  result:
+    | { ok: true; data: unknown }
+    | { ok: false; status: number; error: WalletErrorResponse },
+  successStatus = 200,
+) {
+  if (!result.ok) {
+    return HttpResponse.json(result.error, { status: result.status })
+  }
+
+  return HttpResponse.json({ wallet: result.data }, { status: successStatus })
+}
+
+function toOrderResponse(
+  result:
+    | { ok: true; data: unknown }
+    | { ok: false; status: number; error: OrderErrorResponse },
+  successStatus = 200,
+) {
+  if (!result.ok) {
+    return HttpResponse.json(result.error, { status: result.status })
+  }
+
+  return HttpResponse.json({ order: result.data }, { status: successStatus })
+}
+
+function getWalletScenario(request: Request): WalletScenario | undefined {
+  const scenario = new URL(request.url).searchParams.get('scenario')
+
+  if (
+    scenario === 'normal' ||
+    scenario === 'connection-declined' ||
+    scenario === 'network-error' ||
+    scenario === 'error'
+  ) {
+    return scenario
+  }
+
+  return undefined
 }
