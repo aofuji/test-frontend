@@ -1,5 +1,7 @@
 import { Link, Outlet, createRootRoute } from '@tanstack/react-router'
+import { ShoppingBag, UserRound, WalletCards } from 'lucide-react'
 
+import { Button } from '@/components/ui/button'
 import '../App.css'
 
 const navigationItems = [
@@ -11,40 +13,63 @@ const navigationItems = [
 
 function RootLayout() {
   return (
-    <div className="app-shell">
-      <header className="site-header">
-        <Link to="/" search={defaultCatalogSearch} className="brand">
-          NFT Market
-        </Link>
-        <nav className="site-nav" aria-label="Navegacao principal">
-          {navigationItems.map((item) => (
-            <Link
-              key={item.to}
-              to={item.to}
-              className="nav-link"
-              activeProps={{ className: 'nav-link active' }}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-        <div className="auth-actions">
-          <Link to="/login" className="button secondary">
-            Login
+    <div className="min-h-svh bg-background text-foreground">
+      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
+        <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between lg:px-10">
+          <Link
+            to="/"
+            search={defaultCatalogSearch}
+            className="flex items-center gap-3 text-xl font-semibold tracking-tight"
+          >
+            <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground">
+              <ShoppingBag aria-hidden="true" className="size-5" />
+            </span>
+            NFT Market
           </Link>
-          <Link to="/register" className="button primary">
-            Cadastro
-          </Link>
+          <nav
+            className="flex flex-wrap items-center gap-1"
+            aria-label="Navegacao principal"
+          >
+            {navigationItems.map((item) => (
+              <Link
+                key={item.to}
+                to={item.to}
+                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
+                activeProps={{
+                  className:
+                    'rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground',
+                }}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <Link to="/login">
+                <UserRound aria-hidden="true" />
+                Login
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link to="/register">
+                <WalletCards aria-hidden="true" />
+                Cadastro
+              </Link>
+            </Button>
+          </div>
         </div>
       </header>
 
-      <main className="site-main">
+      <main className="mx-auto min-h-[calc(100svh-160px)] w-full max-w-screen-2xl px-5 py-8 lg:px-10 lg:py-12">
         <Outlet />
       </main>
 
-      <footer className="site-footer">
-        <span>Marketplace de NFTs</span>
-        <span>Preparado para Query, Axios, MSW e autenticacao futura.</span>
+      <footer className="border-t">
+        <div className="mx-auto flex max-w-screen-2xl flex-col gap-2 px-5 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between lg:px-10">
+          <span>Marketplace de NFTs</span>
+          <span>Design system preparado para o layout final do Figma.</span>
+        </div>
       </footer>
     </div>
   )
@@ -52,13 +77,23 @@ function RootLayout() {
 
 function NotFoundPage() {
   return (
-    <section className="page-section compact">
-      <p className="eyebrow">404</p>
-      <h1>Rota nao encontrada</h1>
-      <p>O endereco acessado nao existe neste marketplace.</p>
-      <Link to="/" search={defaultCatalogSearch} className="button primary">
-        Voltar ao catalogo
-      </Link>
+    <section className="grid min-h-[55svh] place-items-center text-center">
+      <div className="max-w-md space-y-4">
+        <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+          404
+        </p>
+        <h1 className="text-4xl font-semibold tracking-tight">
+          Rota nao encontrada
+        </h1>
+        <p className="text-muted-foreground">
+          O endereco acessado nao existe neste marketplace.
+        </p>
+        <Button asChild>
+          <Link to="/" search={defaultCatalogSearch}>
+            Voltar ao catalogo
+          </Link>
+        </Button>
+      </div>
     </section>
   )
 }

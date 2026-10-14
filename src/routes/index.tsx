@@ -1,4 +1,5 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
+import { RotateCcw } from 'lucide-react'
 
 import { useNfts } from '../api/hooks/useNfts'
 import type {
@@ -7,6 +8,16 @@ import type {
   NftListParams,
   NftSortOption,
 } from '../api/types/nft'
+import {
+  FilterPanel,
+  type CatalogFilterState,
+} from '@/components/catalog/filter-panel'
+import { Pagination } from '@/components/catalog/pagination'
+import { SearchInput } from '@/components/catalog/search-input'
+import { NFTGrid } from '@/components/nft/nft-grid'
+import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 
 type CatalogSearch = {
   q?: string
@@ -19,44 +30,6 @@ type CatalogSearch = {
 }
 
 const pageSize = 6
-
-const categories = [
-  { value: '', label: 'Todas categorias' },
-  { value: 'art', label: 'Arte' },
-  { value: 'generative', label: 'Generativo' },
-  { value: 'photography', label: 'Fotografia' },
-  { value: 'pixel', label: 'Pixel art' },
-]
-
-const chains = [
-  { value: '', label: 'Todas redes' },
-  { value: 'ethereum', label: 'Ethereum' },
-  { value: 'polygon', label: 'Polygon' },
-  { value: 'base', label: 'Base' },
-]
-
-const availabilityOptions: Array<{
-  value: NftAvailabilityFilter
-  label: string
-}> = [
-  { value: 'all', label: 'Todos' },
-  { value: 'available', label: 'Disponiveis' },
-  { value: 'sold', label: 'Vendidos' },
-]
-
-const sortOptions: Array<{ value: NftSortOption; label: string }> = [
-  { value: 'newest', label: 'Mais recentes' },
-  { value: 'price-asc', label: 'Menor preco' },
-  { value: 'price-desc', label: 'Maior preco' },
-  { value: 'name-asc', label: 'Nome A-Z' },
-]
-
-const scenarioOptions: Array<{ value: MockScenario; label: string }> = [
-  { value: 'normal', label: 'Normal' },
-  { value: 'latency', label: 'Latencia' },
-  { value: 'error', label: 'Erro 500' },
-  { value: 'empty', label: 'Vazio' },
-]
 
 function HomePage() {
   const search = Route.useSearch()
@@ -73,7 +46,7 @@ function HomePage() {
   }
   const nftsQuery = useNfts(params)
 
-  function updateFilters(patch: Partial<CatalogSearch>) {
+  function updateFilters(patch: Partial<CatalogSearch | CatalogFilterState>) {
     void navigate({
       search: (previous) => ({
         ...previous,
@@ -93,193 +66,74 @@ function HomePage() {
   }
 
   return (
-    <section className="page-section">
-      <div className="page-heading">
-        <p className="eyebrow">Catalogo</p>
-        <h1>NFTs em destaque</h1>
-        <p>
-          Listagem provisoria integrada a uma API REST simulada com Axios,
-          TanStack Query e MSW.
-        </p>
+    <section className="space-y-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px] lg:items-end">
+        <div className="max-w-3xl space-y-4">
+          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
+            Catalogo
+          </p>
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
+            Descubra NFTs selecionados para colecionadores digitais.
+          </h1>
+          <p className="max-w-2xl text-base text-muted-foreground sm:text-lg">
+            Listagem integrada a uma API REST simulada com Axios, TanStack Query
+            e MSW, pronta para receber o layout final do Figma.
+          </p>
+        </div>
+        <Card className="bg-muted/45">
+          <CardContent className="p-5">
+            <SearchInput
+              value={search.q}
+              onChange={(q) => updateFilters({ q })}
+            />
+          </CardContent>
+        </Card>
       </div>
 
-      <form className="filters" onSubmit={(event) => event.preventDefault()}>
-        <label>
-          Buscar por nome
-          <input
-            value={search.q ?? ''}
-            onChange={(event) =>
-              updateFilters({ q: event.currentTarget.value || undefined })
-            }
-            placeholder="Aurora, Neon..."
+      <Card>
+        <CardContent className="space-y-5 p-5">
+          <FilterPanel
+            value={search}
+            onChange={(patch) => updateFilters(patch)}
           />
-        </label>
+        </CardContent>
+      </Card>
 
-        <label>
-          Categoria
-          <select
-            value={search.category ?? ''}
-            onChange={(event) =>
-              updateFilters({
-                category: event.currentTarget.value || undefined,
-              })
-            }
-          >
-            {categories.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Rede
-          <select
-            value={search.chain ?? ''}
-            onChange={(event) =>
-              updateFilters({ chain: event.currentTarget.value || undefined })
-            }
-          >
-            {chains.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Disponibilidade
-          <select
-            value={search.availability}
-            onChange={(event) =>
-              updateFilters({
-                availability: event.currentTarget
-                  .value as NftAvailabilityFilter,
-              })
-            }
-          >
-            {availabilityOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Ordenacao
-          <select
-            value={search.sort}
-            onChange={(event) =>
-              updateFilters({ sort: event.currentTarget.value as NftSortOption })
-            }
-          >
-            {sortOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <label>
-          Cenario MSW
-          <select
-            value={search.scenario}
-            onChange={(event) =>
-              updateFilters({
-                scenario: event.currentTarget.value as MockScenario,
-              })
-            }
-          >
-            {scenarioOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </form>
-
-      {nftsQuery.isLoading ? <p className="state-message">Carregando NFTs...</p> : null}
+      {nftsQuery.isLoading ? <LoadingSkeleton /> : null}
 
       {nftsQuery.isError ? (
-        <div className="state-panel">
-          <h2>Nao foi possivel carregar os NFTs</h2>
-          <p>{nftsQuery.error.message}</p>
-          <button
-            type="button"
-            className="button primary"
-            onClick={() => void nftsQuery.refetch()}
-          >
-            Tentar novamente
-          </button>
-        </div>
+        <StateCard
+          title="Nao foi possivel carregar os NFTs"
+          description={nftsQuery.error.message}
+          action={
+            <Button type="button" onClick={() => void nftsQuery.refetch()}>
+              <RotateCcw aria-hidden="true" />
+              Tentar novamente
+            </Button>
+          }
+        />
       ) : null}
 
       {nftsQuery.isSuccess && nftsQuery.data.items.length === 0 ? (
-        <div className="state-panel">
-          <h2>Nenhum NFT encontrado</h2>
-          <p>Ajuste a busca ou os filtros para ver outros resultados.</p>
-        </div>
+        <StateCard
+          title="Nenhum NFT encontrado"
+          description="Ajuste a busca ou os filtros para ver outros resultados."
+        />
       ) : null}
 
       {nftsQuery.data && nftsQuery.data.items.length > 0 ? (
-        <>
-          <div className="result-summary">
+        <div className="space-y-5">
+          <div className="flex flex-col justify-between gap-2 text-sm text-muted-foreground sm:flex-row sm:items-center">
             <span>{nftsQuery.data.total} NFTs encontrados</span>
-            {nftsQuery.isFetching ? <span>Atualizando...</span> : null}
+            {nftsQuery.isFetching ? <span>Atualizando resultados...</span> : null}
           </div>
-
-          <div className="nft-grid">
-            {nftsQuery.data.items.map((nft) => (
-              <article className="nft-card" key={nft.id}>
-                <div className="nft-art" aria-hidden="true" />
-                <div>
-                  <h2>{nft.name}</h2>
-                  <p>{nft.creator}</p>
-                  <p className="muted">
-                    {nft.collection} · {nft.chain}
-                  </p>
-                </div>
-                <div className="card-footer">
-                  <strong>{nft.priceEth} ETH</strong>
-                  <Link
-                    to="/nft/$nftId"
-                    params={{ nftId: nft.id }}
-                    search={{ scenario: search.scenario }}
-                  >
-                    Ver detalhes
-                  </Link>
-                </div>
-              </article>
-            ))}
-          </div>
-
-          <div className="pagination">
-            <button
-              type="button"
-              className="button secondary"
-              disabled={search.page <= 1}
-              onClick={() => updatePage(search.page - 1)}
-            >
-              Anterior
-            </button>
-            <span>
-              Pagina {nftsQuery.data.page} de {nftsQuery.data.totalPages}
-            </span>
-            <button
-              type="button"
-              className="button secondary"
-              disabled={search.page >= nftsQuery.data.totalPages}
-              onClick={() => updatePage(search.page + 1)}
-            >
-              Proxima
-            </button>
-          </div>
-        </>
+          <NFTGrid nfts={nftsQuery.data.items} scenario={search.scenario} />
+          <Pagination
+            page={nftsQuery.data.page}
+            totalPages={nftsQuery.data.totalPages}
+            onPageChange={updatePage}
+          />
+        </div>
       ) : null}
     </section>
   )
@@ -330,4 +184,24 @@ function getScenario(value: unknown): MockScenario {
   }
 
   return 'normal'
+}
+
+type StateCardProps = {
+  title: string
+  description: string
+  action?: React.ReactNode
+}
+
+function StateCard({ title, description, action }: StateCardProps) {
+  return (
+    <Card className="border-dashed">
+      <CardContent className="grid min-h-52 place-items-center p-8 text-center">
+        <div className="max-w-md space-y-4">
+          <h2 className="text-2xl font-semibold tracking-tight">{title}</h2>
+          <p className="text-muted-foreground">{description}</p>
+          {action}
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
