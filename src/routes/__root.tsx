@@ -1,5 +1,5 @@
 import { Link, Outlet, createRootRouteWithContext } from '@tanstack/react-router'
-import { LogOut, ShoppingBag, UserRound, WalletCards } from 'lucide-react'
+import { Home, LogOut, ShoppingCart, UserRound, WalletCards } from 'lucide-react'
 
 import { useLogout, useSession } from '@/api/hooks/useAuth'
 import { Button } from '@/components/ui/button'
@@ -8,10 +8,10 @@ import { useRealtime } from '@/realtime/useRealtime'
 import '../App.css'
 
 const navigationItems = [
-  { to: '/', label: 'Catalogo' },
-  { to: '/cart', label: 'Carrinho' },
-  { to: '/profile', label: 'Perfil' },
-  { to: '/wallets', label: 'Carteiras' },
+  { to: '/', label: 'Inicio', icon: Home },
+  { to: '/cart', label: 'Carrinho', icon: ShoppingCart },
+  { to: '/profile', label: 'Perfil', icon: UserRound },
+  { to: '/wallets', label: 'Carteiras', icon: WalletCards },
 ]
 
 function RootLayout() {
@@ -21,37 +21,35 @@ function RootLayout() {
 
   return (
     <div className="min-h-svh bg-background text-foreground">
-      <header className="sticky top-0 z-30 border-b bg-background/90 backdrop-blur">
-        <div className="mx-auto flex max-w-screen-2xl flex-col gap-4 px-5 py-4 md:flex-row md:items-center md:justify-between lg:px-10">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/95 font-mono backdrop-blur">
+        <div className="mx-auto flex min-h-14 max-w-7xl flex-wrap items-center justify-between gap-x-5 gap-y-2 px-4 py-2 sm:px-6 lg:px-8">
           <Link
             to="/"
             search={defaultCatalogSearch}
-            className="flex items-center gap-3 text-xl font-semibold tracking-tight"
+            className="text-sm font-black tracking-[0.18em] text-foreground outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <span className="grid size-10 place-items-center rounded-2xl bg-primary text-primary-foreground">
-              <ShoppingBag aria-hidden="true" className="size-5" />
-            </span>
-            NFT Market
+            KURIO
           </Link>
           <nav
-            className="flex flex-wrap items-center gap-1"
+            className="order-3 flex min-w-0 w-full items-center justify-between gap-1 overflow-x-auto border-t border-border pt-2 sm:order-none sm:w-auto sm:border-0 sm:pt-0"
             aria-label="Navegacao principal"
           >
-            {navigationItems.map((item) => (
-              <Link
-                key={item.to}
-                to={item.to}
-                className="rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                activeProps={{
-                  className:
-                    'rounded-lg bg-muted px-3 py-2 text-sm font-medium text-foreground',
-                }}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {navigationItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className="flex items-center gap-1.5 border-b border-transparent px-2 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
+                  activeProps={{ className: 'flex items-center gap-1.5 border-b border-primary px-2 py-1.5 text-xs font-semibold text-primary' }}
+                >
+                  <Icon aria-hidden="true" className="size-3.5 sm:hidden" />
+                  {item.label}
+                </Link>
+              )
+            })}
           </nav>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex max-w-full min-w-0 items-center gap-2">
             {logoutMutation.error ? (
               <p role="alert" className="text-sm text-destructive">
                 {logoutMutation.error.message} Tente sair novamente.
@@ -65,6 +63,8 @@ function RootLayout() {
                 <Button
                   type="button"
                   variant="outline"
+                  size="sm"
+                  className="rounded-sm"
                   disabled={logoutMutation.isPending}
                   onClick={() => {
                     logoutMutation.mutate(undefined, {
@@ -81,16 +81,16 @@ function RootLayout() {
               </>
             ) : (
               <>
-                <Button asChild variant="outline">
-                  <Link to="/login">
+                <Button asChild variant="ghost" size="sm" className="rounded-sm">
+                  <Link to="/login" aria-label="Login">
                     <UserRound aria-hidden="true" />
-                    Login
+                    <span className="max-[260px]:sr-only">Login</span>
                   </Link>
                 </Button>
-                <Button asChild>
-                  <Link to="/register">
+                <Button asChild size="sm" className="rounded-sm">
+                  <Link to="/register" aria-label="Cadastro">
                     <WalletCards aria-hidden="true" />
-                    Cadastro
+                    <span className="max-[260px]:sr-only">Cadastro</span>
                   </Link>
                 </Button>
               </>
@@ -99,15 +99,16 @@ function RootLayout() {
         </div>
       </header>
 
-      <main className="mx-auto min-h-[calc(100svh-160px)] w-full max-w-screen-2xl px-5 py-8 lg:px-10 lg:py-12">
+      <main className="mx-auto min-h-[calc(100svh-160px)] w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         {realtimeNotice ? <p role="status" aria-live="polite" className="mb-5 rounded-lg border bg-muted px-4 py-3 text-sm">{realtimeNotice}</p> : null}
         <Outlet />
       </main>
 
-      <footer className="border-t">
-        <div className="mx-auto flex max-w-screen-2xl flex-col gap-2 px-5 py-6 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between lg:px-10">
-          <span>Marketplace de NFTs</span>
-          <span>Design system preparado para o layout final do Figma.</span>
+      <footer className="border-t border-border bg-card font-mono">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
+          <span className="font-black tracking-[0.18em] text-foreground">KURIO</span>
+          <span>Feito para colecionadores, criadores e cultura digital.</span>
+          <span>© 2026 Kurio.</span>
         </div>
       </footer>
     </div>

@@ -1,14 +1,17 @@
 import type {
   AuthErrorResponse,
   AuthSession,
+  ChangePasswordRequest,
   LoginRequest,
   RegisterRequest,
+  UpdateProfileRequest,
   UserProfile,
 } from '@/api/types/auth'
 import { mergeGuestCartIntoUser } from './cartState'
 import { mockUsers, type MockUserRecord } from './fixtures/users'
 
 const authStateKey = 'nft-marketplace.auth-state.v1'
+const profileReadFailureKey = 'nft-marketplace.profile-read-failure.v1'
 const sessionDurationMs = 30 * 60 * 1000
 
 type PersistedAuthState = {
@@ -35,10 +38,20 @@ export const mockAuthPolicy = {
 }
 
 export function resetAuthState() {
+  localStorage.removeItem(profileReadFailureKey)
   writeState({
     users: structuredClone(mockUsers),
     session: null,
   })
+}
+
+export function setProfileReadFailure(enabled: boolean) {
+  if (enabled) localStorage.setItem(profileReadFailureKey, 'true')
+  else localStorage.removeItem(profileReadFailureKey)
+}
+
+export function isProfileReadFailureEnabled() {
+  return localStorage.getItem(profileReadFailureKey) === 'true'
 }
 
 export function loginUser(payload: LoginRequest): AuthResult<AuthSession> {
@@ -103,6 +116,7 @@ export function registerUser(
       bio: 'Novo colecionador no marketplace.',
       favoriteCategories: [],
       totalCollected: 0,
+      avatarDataUrl: null,
     },
   }
 
@@ -185,8 +199,85 @@ export function getCurrentProfile(): AuthResult<UserProfile> {
     data: {
       ...toAuthUser(user),
       ...user.profile,
+      avatarDataUrl: user.profile.avatarDataUrl ?? null,
     },
   }
+}
+
+export function updateCurrentProfile(payload: UpdateProfileRequest): AuthResult<UserProfile> {
+  const userId = getCurrentUserId()
+  if (!userId) return unauthenticated()
+  const state = readState()
+  const user = state.users.find((candidate) => candidate.id === userId)
+  if (!user) return unauthenticated()
+  const fieldErrors: Record<string, string> = {}
+  const name = typeof payload.name === 'string' ? payload.name.trim() : ''
+  const email = typeof payload.email === 'string' ? normalizeEmail(payload.email) : ''
+  const bio = typeof payload.bio === 'string' ? payload.bio.trim() : ''
+  const categories = payload.favoriteCategories
+  const avatar = payload.avatarDataUrl
+
+  if (name.length < 2 || name.length > 80) fieldErrors.name = 'Informe um nome entre 2 e 80 caracteres.'
+  if (!isEmail(email)) fieldErrors.email = 'Informe um e-mail valido.'
+  if (bio.length > 300) fieldErrors.bio = 'A bio deve ter no maximo 300 caracteres.'
+  if (!Array.isArray(categories) || categories.length > 4 ||
+      new Set(categories).size !== categories.length ||
+      categories.some((category) => !['art', 'generative', 'photography', 'pixel'].includes(category))) {
+    fieldErrors.favoriteCategories = 'Selecione ate quatro categorias validas, sem repeticao.'
+  }
+  if (avatar !== null && (typeof avatar !== 'string' ||
+      !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(avatar) ||
+      avatar.length > 350_000)) {
+    fieldErrors.avatarDataUrl = 'Use uma imagem PNG, JPEG ou WebP de ate 256 KB.'
+  }
+  if (Object.keys(fieldErrors).length > 0) return profileValidationError(fieldErrors)
+  if (state.users.some((candidate) => candidate.id !== userId && normalizeEmail(candidate.email) === email)) {
+    return { ok: false, status: 409, error: {
+      code: 'EMAIL_ALREADY_EXISTS', message: 'Este e-mail ja esta em uso.',
+      fieldErrors: { email: 'E-mail ja cadastrado.' },
+    } }
+  }
+
+  user.name = name
+  user.email = email
+  user.profile.bio = bio
+  user.profile.favoriteCategories = [...categories]
+  user.profile.avatarDataUrl = avatar
+  writeState(state)
+  return { ok: true, data: { ...toAuthUser(user), ...user.profile, avatarDataUrl: user.profile.avatarDataUrl ?? null } }
+}
+
+export function changeCurrentPassword(payload: ChangePasswordRequest): AuthResult<{ ok: true }> {
+  const userId = getCurrentUserId()
+  if (!userId) return unauthenticated()
+  const state = readState()
+  const user = state.users.find((candidate) => candidate.id === userId)
+  if (!user) return unauthenticated()
+  const fieldErrors: Record<string, string> = {}
+  if (!payload.currentPassword) fieldErrors.currentPassword = 'Informe a senha atual.'
+  if (!payload.newPassword || payload.newPassword.length < 8 || payload.newPassword.length > 128) {
+    fieldErrors.newPassword = 'Use uma senha entre 8 e 128 caracteres.'
+  }
+  if (payload.confirmPassword !== payload.newPassword) fieldErrors.confirmPassword = 'As senhas nao coincidem.'
+  if (Object.keys(fieldErrors).length > 0) return profileValidationError(fieldErrors)
+  if (user.passwordHash !== hashPassword(payload.currentPassword)) {
+    return { ok: false, status: 400, error: {
+      code: 'INCORRECT_PASSWORD', message: 'Senha atual incorreta.',
+      fieldErrors: { currentPassword: 'Senha atual incorreta.' },
+    } }
+  }
+  if (payload.currentPassword === payload.newPassword) {
+    return profileValidationError({ newPassword: 'Escolha uma senha diferente da atual.' })
+  }
+  user.passwordHash = hashPassword(payload.newPassword)
+  writeState(state)
+  return { ok: true, data: { ok: true } }
+}
+
+function profileValidationError(fieldErrors: Record<string, string>): AuthResult<never> {
+  return { ok: false, status: 400, error: {
+    code: 'VALIDATION_ERROR', message: 'Revise os campos informados.', fieldErrors,
+  } }
 }
 
 function readState(): PersistedAuthState {

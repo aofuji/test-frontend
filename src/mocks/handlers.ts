@@ -1,6 +1,6 @@
 import { delay, http, HttpResponse } from 'msw'
 
-import type { LoginRequest, RegisterRequest } from '@/api/types/auth'
+import type { ChangePasswordRequest, LoginRequest, RegisterRequest, UpdateProfileRequest } from '@/api/types/auth'
 import type {
   AddCartItemRequest,
   Cart,
@@ -27,7 +27,12 @@ import {
   logoutUser,
   registerUser,
   resetAuthState,
+  updateCurrentProfile,
+  changeCurrentPassword,
+  setProfileReadFailure,
+  isProfileReadFailureEnabled,
 } from './authState'
+import { getFavorites, resetFavoritesState, setFavorite, setNextFavoriteFailure, takeNextFavoriteFailure } from './favoritesState'
 import {
   addCartItem,
   applyCoupon,
@@ -95,17 +100,87 @@ export const handlers = [
       return HttpResponse.json(result.error, { status: result.status })
     }
 
+    if (isProfileReadFailureEnabled()) {
+      return HttpResponse.json({ code: 'PROFILE_UNAVAILABLE', message: 'Erro simulado ao consultar perfil.' }, { status: 500 })
+    }
+
     return HttpResponse.json({ profile: result.data })
+  }),
+
+  http.post('/api/__mock/profile/read-failure', async ({ request }) => {
+    const payload = await request.json() as { enabled: boolean }
+    setProfileReadFailure(payload.enabled === true)
+    return HttpResponse.json({ enabled: payload.enabled === true })
+  }),
+
+  http.patch('/api/profile', async ({ request }) => {
+    const result = updateCurrentProfile(await request.json() as UpdateProfileRequest)
+    return result.ok
+      ? HttpResponse.json({ profile: result.data })
+      : HttpResponse.json(result.error, { status: result.status })
+  }),
+
+  http.post('/api/profile/password', async ({ request }) => {
+    const result = changeCurrentPassword(await request.json() as ChangePasswordRequest)
+    return result.ok
+      ? HttpResponse.json(result.data)
+      : HttpResponse.json(result.error, { status: result.status })
+  }),
+
+  http.get('/api/favorites', () => {
+    const result = getFavorites(getCurrentUserId())
+    return result.ok
+      ? HttpResponse.json({ nftIds: result.data })
+      : HttpResponse.json(result.error, { status: result.status })
+  }),
+
+  http.put('/api/favorites/:nftId', async ({ params }) => {
+    const userId = getCurrentUserId()
+    const current = getFavorites(userId)
+    if (!current.ok) return HttpResponse.json(current.error, { status: current.status })
+    const failure = takeNextFavoriteFailure()
+    if (failure) {
+      await delay(450)
+      return failure === 'network-error' ? HttpResponse.error() : HttpResponse.json({ code: 'FAVORITES_UNAVAILABLE', message: 'Erro simulado ao salvar favorito.' }, { status: 500 })
+    }
+    const result = setFavorite(userId, String(params.nftId), true)
+    return result.ok
+      ? HttpResponse.json({ nftIds: result.data })
+      : HttpResponse.json(result.error, { status: result.status })
+  }),
+
+  http.delete('/api/favorites/:nftId', async ({ params }) => {
+    const userId = getCurrentUserId()
+    const current = getFavorites(userId)
+    if (!current.ok) return HttpResponse.json(current.error, { status: current.status })
+    const failure = takeNextFavoriteFailure()
+    if (failure) {
+      await delay(450)
+      return failure === 'network-error' ? HttpResponse.error() : HttpResponse.json({ code: 'FAVORITES_UNAVAILABLE', message: 'Erro simulado ao remover favorito.' }, { status: 500 })
+    }
+    const result = setFavorite(userId, String(params.nftId), false)
+    return result.ok
+      ? HttpResponse.json({ nftIds: result.data })
+      : HttpResponse.json(result.error, { status: result.status })
+  }),
+
+  http.post('/api/__mock/favorites/fail-next', async ({ request }) => {
+    const payload = await request.json() as { type: 'error' | 'network-error' }
+    if (payload.type !== 'error' && payload.type !== 'network-error') return HttpResponse.json({ code: 'INVALID_SCENARIO' }, { status: 400 })
+    setNextFavoriteFailure(payload.type)
+    return HttpResponse.json({ ok: true })
   }),
 
   http.post('/api/__mock/reset-auth', () => {
     resetAuthState()
+    resetFavoritesState()
     resetCartState()
     resetWalletState()
     resetOrderState()
     resetNftState()
     resetRealtime()
     localStorage.removeItem('nft-marketplace.checkout-attempt.v1')
+    if (typeof sessionStorage !== 'undefined') sessionStorage.removeItem('nft-marketplace.favorite-intent.v1')
 
     return HttpResponse.json({ ok: true })
   }),
@@ -360,6 +435,7 @@ export const handlers = [
       sort: getSort(url),
       page: getNumber(url, 'page'),
       pageSize: getNumber(url, 'pageSize'),
+      featuredOnly: url.searchParams.get('featuredOnly') === 'true',
       scenario,
     }
 

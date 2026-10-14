@@ -18,6 +18,22 @@ export function useRealtime(userId: string | null) {
     let socket: Socket | undefined
     const versions = new Map<string, number>()
     let hadInterruption = false
+    let reconnectWatchdog: ReturnType<typeof setInterval> | undefined
+
+    function ensureReconnect() {
+      if (reconnectWatchdog) return
+      reconnectWatchdog = setInterval(() => {
+        if (active && socket && !socket.connected) {
+          // Restart a Manager left in a stale reconnecting state after the mock closes a transport.
+          socket.disconnect().connect()
+        }
+      }, 2500)
+    }
+
+    function stopReconnectWatchdog() {
+      if (reconnectWatchdog) clearInterval(reconnectWatchdog)
+      reconnectWatchdog = undefined
+    }
 
     async function reconcile() {
       await Promise.all([
@@ -35,6 +51,7 @@ export function useRealtime(userId: string | null) {
       socket = io(window.location.origin, { path: '/socket.io/', transports: ['websocket'], reconnectionDelay: 300, reconnectionDelayMax: 1500 })
       socket.on('connect', () => {
         if (!active) return
+        stopReconnectWatchdog()
         if (hadInterruption) {
           setNotice('Conexao restaurada. Atualizando NFTs, carrinho e pedidos.')
           void reconcile()
@@ -43,8 +60,8 @@ export function useRealtime(userId: string | null) {
         }
         hadInterruption = false
       })
-      socket.on('disconnect', () => { if (active) { hadInterruption = true; setNotice('Atualizacoes em tempo real indisponiveis. Reconectando...') } })
-      socket.on('connect_error', () => { if (active) { hadInterruption = true; setNotice('Atualizacoes em tempo real indisponiveis. Reconectando...') } })
+      socket.on('disconnect', () => { if (active) { hadInterruption = true; ensureReconnect(); setNotice('Atualizacoes em tempo real indisponiveis. Reconectando...') } })
+      socket.on('connect_error', () => { if (active) { hadInterruption = true; ensureReconnect(); setNotice('Atualizacoes em tempo real indisponiveis. Reconectando...') } })
       socket.on('nft.updated', (event: NftUpdatedEvent) => {
         if (!active || !event || !event.nftId || !Number.isInteger(event.version)) return
         const key = `nft:${event.nftId}`
@@ -67,7 +84,7 @@ export function useRealtime(userId: string | null) {
     }
 
     void start()
-    return () => { active = false; socket?.removeAllListeners(); socket?.disconnect() }
+    return () => { active = false; stopReconnectWatchdog(); socket?.removeAllListeners(); socket?.disconnect() }
   }, [queryClient, userId])
 
   return notice

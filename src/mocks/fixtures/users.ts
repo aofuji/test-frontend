@@ -17,6 +17,7 @@ export const mockUsers: MockUserRecord[] = [
       bio: 'Colecionadora de arte generativa e fotografia on-chain.',
       favoriteCategories: ['generative', 'photography'],
       totalCollected: 12,
+      avatarDataUrl: null,
     },
   },
   {
@@ -30,6 +31,7 @@ export const mockUsers: MockUserRecord[] = [
       bio: 'Curador de edicoes raras e colecoes pixel art.',
       favoriteCategories: ['pixel', 'art'],
       totalCollected: 7,
+      avatarDataUrl: null,
     },
   },
 ]

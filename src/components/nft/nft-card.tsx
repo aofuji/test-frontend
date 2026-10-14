@@ -7,11 +7,8 @@ import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
+import { FavoriteButton } from './favorite-button'
 
 type NFTCardProps = {
   nft: Nft
@@ -20,66 +17,37 @@ type NFTCardProps = {
 
 export function NFTCard({ nft, scenario }: NFTCardProps) {
   return (
-    <Card className="group overflow-hidden border-border/80 bg-card/95 p-0 shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
-      <div className={cn('nft-art-surface', getArtworkClass(nft.category))}>
-        <div className="absolute inset-4 rounded-2xl border border-white/20" />
-        <span className="absolute left-5 top-5 rounded-full bg-black/45 px-3 py-1 text-xs font-medium text-white backdrop-blur">
-          {nft.chain}
-        </span>
+    <Card className="group overflow-visible rounded-sm bg-transparent p-0 ring-0">
+      <div className="relative overflow-hidden rounded-sm bg-card ring-1 ring-border">
+        <Link
+          to="/nft/$nftId"
+          params={{ nftId: nft.id }}
+          search={{ scenario }}
+          aria-label={`Abrir ${nft.name}`}
+          className="block aspect-square outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+        >
+          {nft.images[0] ? (
+            <img src={nft.images[0].src} alt={nft.images[0].alt} className="size-full object-cover transition duration-500 group-hover:scale-[1.035]" />
+          ) : (
+            <span className="grid size-full place-items-center text-sm text-muted-foreground">Imagem indisponível</span>
+          )}
+        </Link>
+        <span className="absolute left-3 top-3"><Badge variant={nft.available ? 'default' : 'secondary'}>{nft.available ? nft.chain : 'Vendido'}</Badge></span>
+        <span className="absolute right-3 top-3"><FavoriteButton nftId={nft.id} name={nft.name} /></span>
       </div>
 
-      <CardHeader className="p-5 pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <CardTitle className="line-clamp-1 text-lg">{nft.name}</CardTitle>
-            <p className="mt-1 text-sm text-muted-foreground">{nft.creator}</p>
-          </div>
-          <Badge variant={nft.available ? 'default' : 'secondary'}>
-            {nft.available ? 'Disponivel' : 'Vendido'}
-          </Badge>
+      <CardContent className="flex items-end justify-between gap-3 px-0 pt-3">
+        <div className="min-w-0">
+          <h3 className="truncate font-semibold">{nft.name}</h3>
+          <p className="mt-1 truncate text-xs text-muted-foreground">{nft.creator}</p>
+          <p className="mt-1 font-mono text-base font-bold text-primary">{nft.priceEth} ETH</p>
         </div>
-      </CardHeader>
-
-      <CardContent className="px-5 pb-3">
-        <p className="line-clamp-1 text-sm text-muted-foreground">
-          {nft.collection}
-        </p>
-      </CardContent>
-
-      <CardFooter className="flex items-center justify-between gap-4 p-5 pt-0">
-        <div>
-          <span className="text-xs text-muted-foreground">Preco atual</span>
-          <p className="font-mono text-lg font-semibold text-foreground">
-            {nft.priceEth} ETH
-          </p>
-        </div>
-        <Button asChild size="sm" variant="outline">
-          <Link
-            to="/nft/$nftId"
-            params={{ nftId: nft.id }}
-            search={{ scenario }}
-          >
-            Detalhes
+        <Button asChild size="icon-sm" variant="ghost" className="rounded-sm text-primary">
+          <Link to="/nft/$nftId" params={{ nftId: nft.id }} search={{ scenario }} aria-label={`Detalhes de ${nft.name}`}>
             <ArrowUpRight aria-hidden="true" />
           </Link>
         </Button>
-      </CardFooter>
+      </CardContent>
     </Card>
   )
-}
-
-function getArtworkClass(category: string) {
-  if (category === 'photography') {
-    return 'from-sky-950 via-cyan-700 to-lime-300'
-  }
-
-  if (category === 'generative') {
-    return 'from-fuchsia-950 via-indigo-700 to-amber-300'
-  }
-
-  if (category === 'pixel') {
-    return 'from-slate-950 via-emerald-700 to-orange-300'
-  }
-
-  return 'from-zinc-950 via-violet-700 to-rose-300'
 }

@@ -19,12 +19,13 @@ export function Pagination({
 
   return (
     <nav
-      className="flex flex-col items-center justify-between gap-3 rounded-2xl border bg-card p-3 sm:flex-row"
+      className="flex flex-col items-center justify-between gap-3 border-t border-border pt-5 sm:flex-row"
       aria-label="Paginacao"
     >
       <Button
         type="button"
         variant="outline"
+        className="rounded-sm"
         disabled={page <= 1}
         onClick={() => onPageChange(page - 1)}
       >
@@ -37,6 +38,7 @@ export function Pagination({
       <Button
         type="button"
         variant="outline"
+        className="rounded-sm"
         disabled={page >= totalPages}
         onClick={() => onPageChange(page + 1)}
       >

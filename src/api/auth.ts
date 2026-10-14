@@ -2,9 +2,11 @@ import { apiClient } from './http/client'
 import type {
   AuthResponse,
   AuthSession,
+  ChangePasswordRequest,
   LoginRequest,
   ProfileResponse,
   RegisterRequest,
+  UpdateProfileRequest,
 } from './types/auth'
 
 export async function getSession(signal?: AbortSignal) {
@@ -35,4 +37,13 @@ export async function getProfile(signal?: AbortSignal) {
   const response = await apiClient.get<ProfileResponse>('/profile', { signal })
 
   return response.data.profile
+}
+
+export async function updateProfile(payload: UpdateProfileRequest) {
+  const response = await apiClient.patch<ProfileResponse>('/profile', payload)
+  return response.data.profile
+}
+
+export async function changePassword(payload: ChangePasswordRequest) {
+  await apiClient.post('/profile/password', payload)
 }

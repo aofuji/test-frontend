@@ -58,7 +58,7 @@ const scenarioOptions: Array<{ value: MockScenario; label: string }> = [
 
 export function FilterPanel({ value, onChange }: FilterPanelProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
       <FilterSelect
         label="Categoria"
         value={value.category ?? 'all'}
@@ -101,7 +101,7 @@ type FilterSelectProps = {
 
 function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-foreground">
+    <label className="grid gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
       {label}
       <Select value={value} onValueChange={onChange}>
         <SelectTrigger className="w-full">

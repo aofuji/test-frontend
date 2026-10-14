@@ -11,6 +11,12 @@ export type NftEdition = {
   stock?: number
 }
 
+export type NftImage = {
+  src: string
+  alt: string
+  label: string
+}
+
 export type Nft = {
   id: string
   version?: number
@@ -22,6 +28,7 @@ export type Nft = {
   chain: string
   priceEth: string
   available: boolean
+  images: NftImage[]
   editions: NftEdition[]
   createdAt: string
 }
@@ -34,6 +41,7 @@ export type NftListParams = {
   sort?: NftSortOption
   page?: number
   pageSize?: number
+  featuredOnly?: boolean
   scenario?: MockScenario
 }
 

@@ -1,6 +1,6 @@
 # Checklist de implementação — desafio Frontend
 
-Fonte: [enunciado oficial](desafio-frontend.md), disponibilizado no projeto. Revisão em 14/10/2026. A classificação é por requisito identificável na fonte; há testes de carrinho, checkout e tempo real em `tests/`. “Verificado” se restringe ao comportamento efetivamente exercitado por esses testes; existência de código isoladamente não comprova conclusão.
+Fonte: [enunciado oficial](desafio-frontend.md), disponibilizado no projeto. Revisão em 14/10/2026. A classificação é por requisito identificável na fonte; há testes de carrinho, checkout, perfil, favoritos e tempo real em `tests/`. “Verificado” se restringe ao comportamento efetivamente exercitado por esses testes; existência de código isoladamente não comprova conclusão.
 
 Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não verificado; **PI** = parcialmente implementado; **P** = pendente. São eliminatórios os seis pontos expressamente listados na seção 11 do enunciado. Cada grupo abaixo cita a seção correspondente.
 
@@ -8,25 +8,25 @@ Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não veri
 
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
-| React, TypeScript, TanStack Router, TanStack Query, Axios, REST, Tailwind CSS, shadcn/ui e MSW participam efetivamente | INV | Dependências e uso em `src`; conformidade geral ainda requer avaliação integrada. **Eliminatório** quando a stack obrigatória não é usada efetivamente. |
+| React, TypeScript, TanStack Router, TanStack Query, Axios, REST, Tailwind CSS, shadcn/ui e MSW participam efetivamente | CV | Fluxos de catálogo, conta, favoritos, carrinho, checkout e tempo real exercitados no navegador e API; TypeScript, lint e build passaram. **Eliminatório** quando a stack obrigatória não é usada efetivamente. |
 | Socket.IO participa efetivamente | CV | `socket.io-client` recebe quadros Engine.IO/Socket.IO via WebSocket interceptado pelo MSW; teste no Chromium e preview de produção. **Eliminatório** por ausência de uso efetivo da stack. |
 | Contratos tipados, cache por usuário/parâmetro, descarte de respostas obsoletas, estados de carga/erro e rollback otimista | PI | Presente em API/hooks e carrinho; cobertura integral das rotas ainda não demonstrada. |
-| Fluxos principais são funcionais e não apenas visuais | PI | Compra simulada agora tem testes; descoberta e conta completos ainda carecem de validação. **Eliminatório**. |
-| Rotas inexistentes, acesso direto, execução de checkout limpo e documentação completa | PI | Há rota 404 e acesso direto no Router; README ainda é o template do Vite. |
+| Fluxos principais são funcionais e não apenas visuais | PI | Compra, conta, favoritos, carrinho, destaques, galeria e descoberta têm testes de navegador. Cadastro e alguns cenários completos de checkout ainda carecem de cobertura E2E. **Eliminatório**. |
+| Rotas inexistentes, acesso direto, execução de checkout limpo e documentação completa | PI | Há rota 404; acesso direto ao detalhe/perfil e checkout foram exercitados. Cobertura integral das rotas e documentação de entrega ainda faltam. |
 
 ## Catálogo e detalhes de NFTs — seções 3, 4 e 5
 
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
-| Destaques, catálogo, busca, filtros combináveis, ordenação, paginação e estado da URL | INV | `src/routes/index.tsx` e `src/mocks/apiState.ts`; testes Playwright pedidos ainda ausentes. |
-| Detalhe com galeria, edição, quantidade, favoritos, acesso direto, ausentes e indisponíveis | PI | Detalhe, edição e disponibilidade existem; galeria e favoritos não demonstrados. |
+| Destaques, catálogo, busca, filtros combináveis, ordenação, paginação e estado da URL | CV | Destaques usam `GET /api/nfts?featuredOnly=true` e fixtures selecionadas; testes de API/navegador cobrem preço e disponibilidade atualizados, loading/erro/vazio, URL combinada, paginação, histórico e refresh. |
+| Detalhe com galeria, edição, quantidade, favoritos, acesso direto, ausentes e indisponíveis | CV | Imagens e miniaturas vêm do detalhe REST; seleção por teclado, fallback de imagem, acesso direto a NFT inexistente, quantidade/estoque e favoritos verificados no Chromium. |
 | Atualizações de preço/disponibilidade via `nft.updated` e reconciliação REST | CV | Cenários de preço, estoque, duplicata, fora de ordem e evento perdido no navegador; catálogo, detalhe e carrinho consultam a API simulada. |
 
 ## Autenticação e sessão — seções 3, 4, 5 e 6
 
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
-| Cadastro, login, logout, sessão recuperável e rotas privadas | INV | API simulada, hooks e Router presentes; só parte dos fluxos foi exercitada em testes de checkout. |
+| Cadastro, login, logout, sessão recuperável e rotas privadas | PI | Login, logout, expiração e retomada de perfil/checkout verificados; cadastro e conflito de cadastro ainda sem teste E2E dedicado. |
 | Validação, conflito de cadastro, expiração e retomada do contexto no checkout | PI | Login, cadastro e redirecionamento existem; tentativa de checkout é persistida por usuário e a expiração durante o envio foi exercitada no navegador; outros cenários de sessão ainda precisam de verificação. |
 | Limpeza de cache privado/subscriptions após logout e troca de usuário | CV | Hooks de autenticação limpam cache privado; conexão e listeners são encerrados e refeitos ao trocar `userId`. Teste Playwright descarta evento do usuário anterior. **Exposição entre usuários é eliminatória**. |
 
@@ -57,29 +57,36 @@ Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não veri
 | --- | --- | --- |
 | Consultar, cadastrar, editar e definir carteira principal/secundária; persistir e isolar por usuário | CV | REST MSW e testes de edição, persistência e isolamento; formulário de edição testado no navegador. |
 | Simular conexão, recusa e desconexão | PI | Estado e controles na rota; todos os cenários não foram exercitados no navegador. |
-| Editar perfil, avatar e senha com validação e persistência | P | Perfil atual é de leitura. |
+| Editar perfil, avatar e senha com validação e persistência | CV | Axios/Query/MSW, validação local e da API, foto, senha, refresh, conflito de e-mail, falha de leitura com recuperação, expiração e isolamento testados em API e Chromium. |
+
+## Favoritos — seções 3, 4, 5 e 6
+
+| Requisito original | Estado | Evidência ou lacuna |
+| --- | --- | --- |
+| Consultar, adicionar e remover favoritos autenticados, persistidos e isolados por usuário | CV | REST MSW e testes de API/navegador: intenção após login, refresh, troca de usuário e rollback otimista após HTTP 500. |
 
 ## Socket.IO e tempo real — seções 2, 6 e 7
 
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
 | `nft.updated` e `order.updated` via cliente Socket.IO e mocks compatíveis | CV | `src/mocks/realtime.ts` intercepta o WebSocket com MSW; `src/realtime/useRealtime.ts` usa `socket.io-client`. Teste Playwright verifica atualização de carrinho, checkout e recibo sem polling. |
-| Versões, descarte de duplicatas/antigos, reconexão, reconciliação REST e isolamento de sessão | PI | Teste cobre duplicata/fora de ordem de NFT, evento perdido, troca de usuário, pedido pendente offline e recusado. Eventos antigos após refresh e reconciliação de todas as rotas ainda precisam de cobertura. **Eventos simulados diretamente na UI são eliminatórios**. |
+| Versões, descarte de duplicatas/antigos, reconexão, reconciliação REST e isolamento de sessão | PI | Teste cobre duplicata/fora de ordem e evento antigo após refresh de NFT, evento perdido, troca de usuário, pedido pendente offline e recusado. Após corrigir o gerenciador preso, cinco execuções consecutivas da suíte passaram no preview local. Reconciliação de todas as rotas ainda não tem cobertura. **Eventos simulados diretamente na UI são eliminatórios**. |
 
 ## Testes Playwright — seções 2, 9 e 11
 
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
-| E2E executáveis dos fluxos principais | PI | Scripts de carrinho, checkout e tempo real executáveis com Playwright externo; faltam descoberta, perfil e cobertura completa. **Ausência de testes E2E executáveis é eliminatória**. |
+| E2E executáveis dos fluxos principais | PI | Scripts de carrinho, checkout, tempo real, perfil, favoritos, destaques, galeria, URL, paginação e histórico foram executados com Playwright externo; faltam cobertura ampla e dependência Playwright declarada no projeto. **Ausência de testes E2E executáveis é eliminatória**. |
 | Regressão visual, baselines, isolamento/relógio, relatório HTML e traces | P | Não incluídos nos scripts atuais. |
 
 ## Acessibilidade e responsividade — seções 3 e 8
 
 | Requisito original | Estado | Evidência ou lacuna |
 | --- | --- | --- |
-| Layout desktop/tablet/mobile e ausência de overflow em 390, 768 e 1440 px | PI | Checkout inspecionado nos três viewports por script; outras telas precisam de verificação. |
-| Teclado, foco, labels, mensagens, contraste, zoom, imagens e feedback acessível | PI | Há semântica e alguns status/alertas; auditoria completa e teste por teclado pendentes. |
-| Fidelity ao Figma e substituições de assets documentadas | P | O arquivo Figma não está disponível no projeto. |
+| Layout desktop/tablet/mobile e ausência de overflow em 390, 768 e 1440 px | PI | Checkout, perfil, detalhe e catálogo inspecionados em 390/768/1440 px; detalhe também passou no reflow equivalente a zoom de 200%. Outras rotas ainda carecem de revisão visual. |
+| Teclado, foco, labels, mensagens, contraste, zoom, imagens e feedback acessível | PI | Galeria passou em Tab/Enter com anel de foco; mensagens e fallback têm semântica acessível; contraste do texto principal medido em 18,27:1. Auditoria completa de todos os controles, cores e rotas ainda pendente. |
+| Skeletons com shimmer, dimensões estáveis e movimento reduzido | PI | Catálogo, detalhe, carrinho e perfil usam skeleton com shimmer; teste Chromium confirma preferência por movimento reduzido. CLS/dimensões ainda requerem medição. |
+| Fidelidade ao Figma e substituições de assets documentadas | PI | Figma indisponível; cinco SVGs locais são ilustrações abstratas provisórias para a galeria, documentadas em `ARCHITECTURE.md`. Aderência ao layout não pôde ser avaliada. |
 
 ## Lighthouse e performance — seções 2 e 10
 

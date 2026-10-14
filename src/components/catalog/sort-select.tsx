@@ -21,7 +21,7 @@ type SortSelectProps = {
 
 export function SortSelect({ value, onChange }: SortSelectProps) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-foreground">
+    <label className="grid gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
       Ordenacao
       <Select value={value} onValueChange={(next) => onChange(next as NftSortOption)}>
         <SelectTrigger className="w-full">

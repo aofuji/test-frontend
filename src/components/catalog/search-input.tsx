@@ -1,6 +1,5 @@
-import { Search } from 'lucide-react'
-
 import { Input } from '@/components/ui/input'
+import searchIcon from '../../../design-reference/Mobile /Search.svg'
 
 type SearchInputProps = {
   value?: string
@@ -9,15 +8,13 @@ type SearchInputProps = {
 
 export function SearchInput({ value, onChange }: SearchInputProps) {
   return (
-    <label className="grid gap-2 text-sm font-medium text-foreground">
-      Buscar por nome
+    <label className="grid gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+      Explorar coleções
       <span className="relative">
-        <Search
-          aria-hidden="true"
-          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
-        />
+        <img src={searchIcon} alt="" className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2" />
         <Input
-          className="pl-9"
+          aria-label="Buscar por nome"
+          className="h-10 rounded-sm border-primary/25 bg-card pl-10 normal-case tracking-normal"
           value={value ?? ''}
           onChange={(event) => onChange(event.currentTarget.value || undefined)}
           placeholder="Aurora, Neon..."

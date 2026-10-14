@@ -10,6 +10,21 @@ export type UserProfile = AuthUser & {
   bio: string
   favoriteCategories: string[]
   totalCollected: number
+  avatarDataUrl: string | null
+}
+
+export type UpdateProfileRequest = {
+  name: string
+  email: string
+  bio: string
+  favoriteCategories: string[]
+  avatarDataUrl: string | null
+}
+
+export type ChangePasswordRequest = {
+  currentPassword: string
+  newPassword: string
+  confirmPassword: string
 }
 
 export type AuthSession = {
@@ -42,9 +57,10 @@ export type AuthErrorCode =
   | 'EMAIL_ALREADY_EXISTS'
   | 'SESSION_EXPIRED'
   | 'UNAUTHENTICATED'
+  | 'INCORRECT_PASSWORD'
 
 export type AuthErrorResponse = {
   code: AuthErrorCode
   message: string
-  fieldErrors?: Partial<Record<keyof RegisterRequest | keyof LoginRequest, string>>
+  fieldErrors?: Record<string, string>
 }

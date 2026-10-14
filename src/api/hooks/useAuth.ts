@@ -1,8 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
-import { getProfile, getSession, login, logout, register } from '../auth'
+import { changePassword, getProfile, getSession, login, logout, register, updateProfile } from '../auth'
 import { queryKeys } from '../queryKeys'
-import type { LoginRequest, RegisterRequest } from '../types/auth'
+import type { AuthSession, ChangePasswordRequest, LoginRequest, RegisterRequest, UpdateProfileRequest } from '../types/auth'
 
 export function useSession() {
   return useQuery({
@@ -19,6 +19,23 @@ export function useProfile() {
     queryFn: ({ signal }) => getProfile(signal),
     retry: false,
   })
+}
+
+export function useUpdateProfile() {
+  const queryClient = useQueryClient()
+  return useMutation({
+    mutationFn: (payload: UpdateProfileRequest) => updateProfile(payload),
+    onSuccess: (profile) => {
+      queryClient.setQueryData(queryKeys.auth.profile(), profile)
+      queryClient.setQueryData<AuthSession | null>(queryKeys.auth.session(), (current) => current
+        ? { ...current, user: { ...current.user, name: profile.name, email: profile.email } }
+        : current)
+    },
+  })
+}
+
+export function useChangePassword() {
+  return useMutation({ mutationFn: (payload: ChangePasswordRequest) => changePassword(payload) })
 }
 
 export function useLogin() {

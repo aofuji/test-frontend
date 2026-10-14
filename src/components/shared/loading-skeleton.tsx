@@ -33,17 +33,17 @@ export function LoadingSkeleton({
   return (
     <div
       className={cn(
-        'grid gap-5 sm:grid-cols-2 xl:grid-cols-3',
+        'grid gap-x-5 gap-y-8 sm:grid-cols-2 xl:grid-cols-3',
         className,
       )}
     >
       {Array.from({ length: count }).map((_, index) => (
         <div
           key={index}
-          className="overflow-hidden rounded-3xl border bg-card"
+          className="overflow-hidden rounded-sm border bg-card"
         >
-          <Skeleton className="aspect-[4/3] rounded-none" />
-          <div className="space-y-4 p-5">
+          <Skeleton className="aspect-square rounded-none" />
+          <div className="space-y-3 p-4">
             <Skeleton className="h-5 w-3/4" />
             <Skeleton className="h-4 w-1/2" />
             <div className="flex items-center justify-between">

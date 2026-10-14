@@ -6,6 +6,7 @@ import type {
   NftSortOption,
 } from '../api/types/nft'
 import { getNfts } from './nftState'
+import { featuredNftIds } from './fixtures/nfts'
 
 const defaultPage = 1
 const defaultPageSize = 6
@@ -36,6 +37,7 @@ export function listNfts(params: NftListParams): NftListResponse {
     .filter((nft) => matchesValue(nft.category, params.category))
     .filter((nft) => matchesValue(nft.chain, params.chain))
     .filter((nft) => matchesAvailability(nft.available, params.availability))
+    .filter((nft) => !params.featuredOnly || featuredNftIds.has(nft.id))
     .sort(getSort(params.sort))
 
   const total = filtered.length

@@ -2,6 +2,8 @@
 
 Marketplace demonstrativo em React, TypeScript e Vite. Catálogo, conta, carrinho, carteiras, checkout e pedidos usam APIs REST simuladas por MSW no próprio navegador. Não há blockchain ou pagamento real. O [enunciado oficial](docs/desafio-frontend.md), o [checklist de progresso](docs/implementation-checklist.md) e a [arquitetura](docs/ARCHITECTURE.md) ficam em `docs`.
 
+A Home traz NFTs em destaque da mesma API do catálogo. O detalhe tem galeria com imagem principal, miniaturas e seleção por teclado. As ilustrações SVG são provisórias porque o Figma não está disponível neste repositório.
+
 ## Execução local
 
 Requer Node.js compatível com Vite 8 e npm. Em um checkout limpo:
@@ -25,7 +27,24 @@ await fetch('/api/__mock/reset-auth', { method: 'POST' })
 location.reload()
 ```
 
-Esse reset limpa sessões, NFTs alterados, carrinhos, cotações, carteiras, pedidos, conexões de teste e a tentativa de checkout. É uma rota de demonstração, não uma API de produção.
+Esse reset limpa sessões, perfis, favoritos, NFTs alterados, carrinhos, cotações, carteiras, pedidos, conexões de teste e a tentativa de checkout. É uma rota de demonstração, não uma API de produção.
+
+## Perfil e favoritos
+
+Após login, `/profile` permite editar nome, e-mail, bio, categorias favoritas e avatar PNG/JPEG/WebP de até 256 KB, além de alterar a senha informando a atual. As mudanças confirmadas permanecem após refresh. O botão de coração no catálogo e no detalhe salva favoritos por usuário. Para visitantes, ele abre o login e retoma a ação no NFT de origem. Os endpoints são `GET/PATCH /api/profile`, `POST /api/profile/password`, `GET /api/favorites` e `PUT/DELETE /api/favorites/:nftId`.
+
+Para reproduzir um rollback de favorito, entre em uma conta e execute no console antes de clicar no coração:
+
+```js
+await fetch('/api/__mock/favorites/fail-next', {
+  method: 'POST', headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ type: 'error' }),
+})
+```
+
+Use `type: 'network-error'` para simular falha de conexão. A ação aparece imediatamente e volta ao estado anterior quando a mutation falha. O hash de senha e o armazenamento local são exclusivos desta simulação; não substituem autenticação de servidor.
+
+Para testar erro de leitura do perfil, com sessão ativa execute `await fetch('/api/__mock/profile/read-failure', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: true }) })` e recarregue `/profile`. Desative com o mesmo comando e `enabled: false` antes de clicar em **Tentar novamente**. O reset geral também desativa esse cenário.
 
 ## Tempo real simulado
 
@@ -54,9 +73,14 @@ npm run lint
 npm run build
 npm run test:cart
 npm run test:checkout
+npm run test:profile
+npm run test:profile:browser
+npm run test:cart:browser
+npm run test:checkout:browser
 npm run test:realtime:browser
+git diff --check
 ```
 
-Com Vite iniciado com mocks, `npm run test:checkout:browser` testa os fluxos no Chrome via Playwright. `npm run test:cart:browser` testa o carrinho e requer o servidor de desenvolvimento, pois importa o `queryClient` por `/src`. `npm run test:realtime:browser` verifica o transporte Socket.IO e também funciona no preview com `REALTIME_TEST_URL`. Playwright não está no `package.json` atual: os scripts usam uma instalação acessível via `PLAYWRIGHT_MODULE`, o Chrome indicado por `CHROME_PATH` e a URL opcional de cada suíte. A ausência dessa dependência declarada e da suíte E2E completa é uma pendência do [checklist](docs/implementation-checklist.md).
+Com Vite iniciado com mocks, `npm run test:profile:browser` testa perfil, favoritos, destaques, galeria, URL, paginação, histórico, teclado, foco, reflow e movimento reduzido. `npm run test:cart:browser` testa o carrinho e requer o servidor de desenvolvimento, pois importa o `queryClient` por `/src`. As suítes de checkout e tempo real também funcionam no preview com `CHECKOUT_TEST_URL` e `REALTIME_TEST_URL`; a suíte nova aceita `PROFILE_TEST_URL`. Playwright não está no `package.json` atual: os scripts usam uma instalação acessível via `PLAYWRIGHT_MODULE`, o Chrome indicado por `CHROME_PATH` e a URL opcional de cada suíte. A ausência dessa dependência declarada e da suíte E2E completa é uma pendência do [checklist](docs/implementation-checklist.md).
 
-Favoritos, edição de perfil, regressão visual ampla, auditoria Lighthouse e deploy continuam pendentes no desafio completo. O arquivo Figma não está disponível neste repositório, portanto fidelidade aos frames oficiais não foi avaliada.
+Regressão visual ampla, auditoria Lighthouse e deploy continuam pendentes no desafio completo. O arquivo Figma não está disponível neste repositório, portanto fidelidade aos frames oficiais não foi avaliada. O preview local com mocks passou cinco execuções consecutivas da suíte Socket.IO após a correção da reconexão; a publicação real ainda não foi verificada.

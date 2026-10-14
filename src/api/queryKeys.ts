@@ -27,4 +27,8 @@ export const queryKeys = {
     list: () => [...queryKeys.orders.all(), 'list'] as const,
     detail: (orderId: string) => [...queryKeys.orders.all(), 'detail', orderId] as const,
   },
+  favorites: {
+    all: () => [...queryKeys.auth.private(), 'favorites'] as const,
+    list: (userId: string) => [...queryKeys.favorites.all(), userId] as const,
+  },
 }

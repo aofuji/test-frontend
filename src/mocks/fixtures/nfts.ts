@@ -1,6 +1,23 @@
-import type { Nft } from '../../api/types/nft'
+import type { Nft, NftImage } from '../../api/types/nft'
 
-export const nftFixtures: Nft[] = [
+export const featuredNftIds = new Set(['aurora-001', 'neon-204', 'orbit-512'])
+
+const imageByNftId: Record<string, NftImage> = {
+  'aurora-001': { src: '/images/nfts/nft1.png', alt: 'Macaco marrom com oculos verdes e jaqueta universitaria verde', label: 'Vista principal' },
+  'neon-204': { src: '/images/nfts/nft4.png', alt: 'Macaco cinza com chapeu verde e moletom roxo', label: 'Vista principal' },
+  'orbit-512': { src: '/images/nfts/nft3.png', alt: 'Macaco de pelagem escura com gola verde e blazer claro', label: 'Vista principal' },
+  'terra-117': { src: '/images/nfts/nft4.png', alt: 'Macaco cinza com chapeu verde e moletom roxo', label: 'Vista principal' },
+  'pixel-reef-044': { src: '/images/nfts/nft4.png', alt: 'Macaco cinza com chapeu verde e moletom roxo', label: 'Vista principal' },
+  'vault-echo-300': { src: '/images/nfts/nft3.png', alt: 'Macaco de pelagem escura com gola verde e blazer claro', label: 'Vista principal' },
+  'solar-thread-019': { src: '/images/nfts/nft2.png', alt: 'Macaco dourado com fones verdes e jaqueta clara', label: 'Vista principal' },
+  'glass-house-071': { src: '/images/nfts/nft2.png', alt: 'Macaco dourado com fones verdes e jaqueta clara', label: 'Vista principal' },
+  'mono-mask-008': { src: '/images/nfts/nft2.png', alt: 'Macaco dourado com fones verdes e jaqueta clara', label: 'Vista principal' },
+  'block-bloom-155': { src: '/images/nfts/nft1.png', alt: 'Macaco marrom com oculos verdes e jaqueta universitaria verde', label: 'Vista principal' },
+  'midnight-frame-026': { src: '/images/nfts/nft4.png', alt: 'Macaco cinza com chapeu verde e moletom roxo', label: 'Vista principal' },
+  'byte-relic-009': { src: '/images/nfts/nft3.png', alt: 'Macaco de pelagem escura com gola verde e blazer claro', label: 'Vista principal' },
+}
+
+const nftRecords: Array<Omit<Nft, 'images'>> = [
   {
     id: 'aurora-001',
     name: 'Aurora Chain #001',
@@ -177,3 +194,11 @@ export const nftFixtures: Nft[] = [
     createdAt: '2025-12-18T17:00:00.000Z',
   },
 ]
+
+export const nftFixtures: Nft[] = nftRecords.map((nft) => ({
+  ...nft,
+  images: [
+    { ...imageByNftId[nft.id], alt: `${imageByNftId[nft.id].alt}, representando ${nft.name}` },
+    ...(nft.id === 'aurora-001' ? [{ src: '/images/nfts/nft1.png', alt: `Retrato aproximado do macaco marrom com oculos verdes, representando ${nft.name}`, label: 'Detalhe' }] : []),
+  ],
+}))
