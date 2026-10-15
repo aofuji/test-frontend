@@ -205,12 +205,13 @@ function HomePage() {
       </section>
 
       <section id="catalogo" aria-label="Catálogo de NFTs" className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-7 scroll-mt-24 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[310px_minmax(0,1fr)] xl:gap-x-12">
+          <h2 className="sr-only">Catálogo de NFTs</h2>
 
           <div className="home-catalog-tools flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between lg:col-start-2">
-            <div className="flex items-center gap-4 overflow-x-auto text-xs font-normal leading-6 sm:text-sm" aria-label="Visualização do catálogo">
-              <button type="button" className={search.availability === 'all' && search.sort === 'newest' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ availability: 'all', sort: 'newest' })}>Todos os NFTs</button>
-              <button type="button" className={search.sort === 'newest' && search.availability !== 'all' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'newest' })}>Novos lançamentos</button>
-              <button type="button" className={search.sort === 'price-desc' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'price-desc' })}>Em alta</button>
+            <div className="flex items-center gap-4 overflow-x-auto text-xs font-normal leading-6 sm:text-sm" role="group" aria-label="Visualização do catálogo">
+              <button type="button" aria-pressed={search.availability === 'all' && search.sort === 'newest'} className={search.availability === 'all' && search.sort === 'newest' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ availability: 'all', sort: 'newest' })}>Todos os NFTs</button>
+              <button type="button" aria-pressed={search.sort === 'newest' && search.availability !== 'all'} className={search.sort === 'newest' && search.availability !== 'all' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'newest' })}>Novos lançamentos</button>
+              <button type="button" aria-pressed={search.sort === 'price-desc'} className={search.sort === 'price-desc' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'price-desc' })}>Em alta</button>
             </div>
             <div className="home-catalog-sort self-end sm:shrink-0">
               <SortSelect value={search.sort} onChange={(sort) => updateFilters({ sort })} />

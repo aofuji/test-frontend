@@ -136,7 +136,7 @@ function NftDetailsPage() {
               <button
                 type="button"
                 className="nft-rating"
-                aria-label="Ver avaliações de colecionadores"
+                aria-label="Ver avaliações de colecionadores: Sem avaliações disponíveis"
                 onClick={() => {
                   setActiveInfoTab('reviews')
                   document.getElementById('nft-reviews-tab')?.focus()
@@ -204,11 +204,19 @@ function NftDetailsPage() {
           </div>
         </div>
         <section aria-label="Informações do NFT" className="nft-information">
-          <div role="tablist" aria-label="Detalhes e avaliações" className="nft-tabs">
-            <button id="nft-details-tab" type="button" role="tab" aria-controls="nft-info-panel" aria-selected={activeInfoTab === 'details'} onClick={() => setActiveInfoTab('details')}>Detalhes do NFT</button>
-            <button id="nft-reviews-tab" type="button" role="tab" aria-controls="nft-info-panel" aria-selected={activeInfoTab === 'reviews'} onClick={() => setActiveInfoTab('reviews')}>Avaliações de colecionadores</button>
+          <div role="tablist" aria-label="Detalhes e avaliações" className="nft-tabs" onKeyDown={(event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+            event.preventDefault()
+            const tabs = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="tab"]'))
+            const current = tabs.indexOf(document.activeElement as HTMLButtonElement)
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (current + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
+            tabs[next]?.click()
+            tabs[next]?.focus()
+          }}>
+            <button id="nft-details-tab" type="button" role="tab" tabIndex={activeInfoTab === 'details' ? 0 : -1} aria-controls="nft-info-panel" aria-selected={activeInfoTab === 'details'} onClick={() => setActiveInfoTab('details')}>Detalhes do NFT</button>
+            <button id="nft-reviews-tab" type="button" role="tab" tabIndex={activeInfoTab === 'reviews' ? 0 : -1} aria-controls="nft-info-panel" aria-selected={activeInfoTab === 'reviews'} onClick={() => setActiveInfoTab('reviews')}>Avaliações de colecionadores</button>
           </div>
-          <div id="nft-info-panel" role="tabpanel" aria-labelledby={activeInfoTab === 'details' ? 'nft-details-tab' : 'nft-reviews-tab'} className="nft-info-panel">
+          <div id="nft-info-panel" role="tabpanel" tabIndex={0} aria-labelledby={activeInfoTab === 'details' ? 'nft-details-tab' : 'nft-reviews-tab'} className="nft-info-panel focus-visible:outline-2 focus-visible:outline-primary">
             {activeInfoTab === 'details' ? (
               <>
                 <p>{nftQuery.data.description}</p>

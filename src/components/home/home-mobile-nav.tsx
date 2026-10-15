@@ -10,7 +10,7 @@ export function HomeMobileNav({ authenticated, cartCount, favoritesOpen }: { aut
         <House aria-hidden="true" />
       </a>
       {authenticated ? (
-        <a {...favoritesLink} id="home-mobile-favorites" aria-label="Favoritos" aria-current={favoritesOpen ? "page" : undefined} data-status={favoritesOpen ? "active" : undefined} data-selected={favoritesOpen} aria-haspopup="dialog" aria-controls="home-mobile-favorites-panel">
+        <a {...favoritesLink} id="home-mobile-favorites" aria-label="Favoritos" aria-current={favoritesOpen ? "page" : undefined} data-status={favoritesOpen ? "active" : undefined} data-selected={favoritesOpen} aria-haspopup="dialog" aria-expanded={favoritesOpen} aria-controls="home-mobile-favorites-panel">
           <Heart aria-hidden="true" />
         </a>
       ) : (

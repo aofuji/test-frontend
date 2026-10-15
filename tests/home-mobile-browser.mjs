@@ -62,9 +62,9 @@ try {
 
   await page.goto(`${base}/nft/aurora-001`)
   assert.equal(await bottomNav.count(), 0, 'Other screens must retain their existing layout')
-  const addFavorite = page.getByRole('button', { name: 'Adicionar Aurora Chain #001 aos favoritos', exact: true })
+  const addFavorite = page.getByRole('button', { name: 'Adicionar Aurora Chain #001 aos favoritos: Favoritar', exact: true })
   await addFavorite.click()
-  await page.getByRole('button', { name: 'Remover Aurora Chain #001 dos favoritos', exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Remover Aurora Chain #001 dos favoritos: Favoritado', exact: true }).waitFor()
   await page.goto(base)
   await bottomNav.getByRole('link', { name: 'Favoritos', exact: true }).click()
   await favorites.getByRole('heading', { name: 'Aurora Chain #001', exact: true }).waitFor()

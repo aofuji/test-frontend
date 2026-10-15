@@ -6,6 +6,18 @@ O enunciado fornecido pela Jungle Gaming é a fonte dos requisitos. Os contratos
 
 Os mocks persistem sessão, perfil, favoritos, NFTs alterados, carrinho, carteiras e pedidos no `localStorage`, separados por usuário quando privados. A camada MSW é a autoridade para preços, totais, cotações, estados de pagamento e idempotência; os componentes exibem a resposta e invalidam as consultas relevantes. A conexão REST é simulada; não há blockchain nem gateway real. A referência visual é o Figma fornecido no desafio; as imagens usadas pela aplicação ficam em `public/`. Os exports estáticos usados durante a implementação não comprovam interações do protótipo original.
 
+## Acessibilidade
+
+O documento usa `lang="pt-BR"` e título descritivo. O link “Pular para o conteúdo” aparece ao receber foco e direciona ao `main`. Títulos das rotas de autenticação e da região do catálogo mantêm a hierarquia sem alterar sua apresentação. Os filtros usam IDs únicos por instância, inclusive quando sidebar e painel mobile coexistem.
+
+Os modais de autenticação reutilizam `Dialog` do Radix já instalado: foco inicial, contenção de Tab/Shift+Tab, isolamento do fundo e fechamento com Esc. Ao fechar, o foco retorna ao acionador visível ou ao acesso de perfil após autenticação. As abas de autenticação e detalhes do NFT usam setas/Home/End, um único tab stop e vínculo com o painel correspondente. Painéis mobile de filtros/favoritos mantêm a mesma gestão de foco do Radix.
+
+Erros de autenticação têm `role="alert"`, IDs e `aria-describedby`; labels permanecem estáveis e o primeiro campo inválido recebe foco. Formulários anunciam carregamento com `aria-busy` e o cadastro anuncia sucesso como status. Nomes acessíveis de ações incluem o texto visível, permitindo também acionamento por voz.
+
+`npm run test -- accessibility-browser` reutiliza Playwright e o axe-core incluído no Lighthouse, sem dependências novas. Exercita teclado, foco, erros, nomes, sliders, seleção de carteira, painéis mobile e 31 auditorias automatizadas em 1440px/375px, incluindo contraste. As cores principais verificadas têm razões de 17,10:1 (texto principal), 5,92:1 (secundário), 6,04:1 (laranja) e 6,71:1 (texto do botão). A paleta e o layout foram preservados; a área do modal desktop também foi comparada por pixels sem diferença.
+
+Essa verificação não substitui teste com leitor de tela real nem certifica conformidade WCAG completa. O axe pode exigir inspeção manual para casos inconclusivos, como conteúdo sobre imagens/gradientes; não se pressupõe que toda combinação de estados e dados foi auditada.
+
 ## Autenticação social pendente
 
 Os botões **Continuar com Google** e **Continuar com Facebook**, exibidos nos modais de login e cadastro, reproduzem apenas o visual do Figma. Permanecem desabilitados: não iniciam autenticação, não criam sessão e não redirecionam para os provedores.

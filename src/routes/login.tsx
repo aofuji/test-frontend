@@ -48,7 +48,7 @@ function AuthShell({ eyebrow, title, children }: { eyebrow: string; title: strin
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
-          <CardTitle className="text-3xl">{title}</CardTitle>
+          <CardTitle className="text-3xl"><h1>{title}</h1></CardTitle>
         </CardHeader>
         <CardContent>{children}</CardContent>
       </Card>

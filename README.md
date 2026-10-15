@@ -120,7 +120,9 @@ npm run test -- auth-mobile
 npm run test -- catalog-pagination
 ```
 
-As cinco suítes antigas tiveram seus seletores atualizados, preservando verificações funcionais. A última execução completa aprovou **15/15 suítes**: 12 Playwright e 3 de API/estado (17 testes individuais de API), sem falhas ou testes ignorados. Isso não equivale a cobertura integral de cada requisito nem substitui regressão visual com baselines. O [relatório de revisão de entrega](docs/delivery-review.md) registra a validação de instalação limpa e as pendências do enunciado.
+As cinco suítes antigas tiveram seus seletores atualizados, preservando verificações funcionais. A última execução completa aprovou **16/16 suítes**: 13 Playwright e 3 de API/estado (17 testes individuais de API), sem falhas ou testes ignorados. Isso não equivale a cobertura integral de cada requisito nem substitui regressão visual com baselines. O [relatório de revisão de entrega](docs/delivery-review.md) registra a validação de instalação limpa e as pendências do enunciado.
+
+A auditoria de acessibilidade pode ser reproduzida com `npm run test -- accessibility-browser`: verifica teclado, foco, formulários e 31 análises axe em desktop/mobile, reutilizando o axe-core incluído no Lighthouse. O escopo e as limitações estão na [arquitetura](docs/ARCHITECTURE.md#acessibilidade); não substitui testes com leitores de tela reais.
 
 Os comandos específicos `test:cart`, `test:checkout`, `test:profile` e `test:*:browser` continuam disponíveis. Os três primeiros dispensam navegador e servidor. Os comandos `test:*:browser` executados diretamente requerem um Vite já iniciado com mocks; a suíte de carrinho importa módulos por `/src` e precisa do servidor de desenvolvimento.
 

@@ -50,7 +50,7 @@ export function FavoriteButton({ nftId, name, showLabel = false }: { nftId: stri
 
   const error = mutation.error instanceof ApiError ? mutation.error.message : favorites.error instanceof ApiError ? favorites.error.message : null
   return <div className="flex min-w-0 flex-col items-start gap-1">
-    <Button type="button" size={showLabel ? 'default' : 'icon'} className={showLabel ? 'nft-favorite' : undefined} variant={favorite ? 'secondary' : 'outline'} onClick={toggle} disabled={session.isPending || mutation.isPending} aria-pressed={favorite} aria-label={`${favorite ? 'Remover' : 'Adicionar'} ${name} ${favorite ? 'dos' : 'aos'} favoritos`} title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}>
+    <Button type="button" size={showLabel ? 'default' : 'icon'} className={showLabel ? 'nft-favorite' : undefined} variant={favorite ? 'secondary' : 'outline'} onClick={toggle} disabled={session.isPending || mutation.isPending} aria-pressed={favorite} aria-label={`${favorite ? 'Remover' : 'Adicionar'} ${name} ${favorite ? 'dos' : 'aos'} favoritos${showLabel ? `: ${favorite ? 'Favoritado' : 'Favoritar'}` : ''}`} title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}>
       <Heart className={favorite ? 'fill-current' : ''} aria-hidden="true" />
       {showLabel ? <span className="favorite-button-label">{favorite ? 'Favoritado' : 'Favoritar'}</span> : null}
     </Button>

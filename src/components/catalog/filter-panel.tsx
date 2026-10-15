@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useId, useState } from 'react'
 import { Slider } from 'radix-ui'
 
 import type { MockScenario, Nft, NftAvailabilityFilter, NftSortOption } from '@/api/types/nft'
@@ -34,6 +34,7 @@ function countBy(items: Nft[], field: 'category' | 'chain') {
 }
 
 export function FilterPanel({ value, onChange, items, loading, error, onRetry }: FilterPanelProps) {
+  const filterId = useId()
   const prices = items.map((item) => Number(item.priceEth)).filter(Number.isFinite)
   const min = prices.length ? Math.min(...prices) : 0
   const max = prices.length ? Math.max(...prices) : 0
@@ -42,8 +43,8 @@ export function FilterPanel({ value, onChange, items, loading, error, onRetry }:
 
   return (
     <div className="space-y-8 font-mono text-[#f5f1eb]">
-      <section aria-labelledby="collections-filter-title">
-        <h3 id="collections-filter-title" className="mb-3 text-lg font-bold">Coleções</h3>
+      <section aria-labelledby={`${filterId}-collections`}>
+        <h3 id={`${filterId}-collections`} className="mb-3 text-lg font-bold">Coleções</h3>
         {loading ? <p role="status" className="text-sm text-[#b39463]">Carregando filtros...</p> : null}
         {error ? <p role="alert" className="text-sm text-[#b39463]">Não foi possível carregar os filtros. <button type="button" onClick={onRetry} className="underline">Tentar novamente</button></p> : null}
         {!loading && !error && !items.length ? <p className="text-sm text-[#b39463]">Nenhuma coleção disponível.</p> : null}
@@ -54,13 +55,13 @@ export function FilterPanel({ value, onChange, items, loading, error, onRetry }:
         ))}
       </section>
 
-      <section aria-labelledby="price-filter-title">
-        <h3 id="price-filter-title" className="mb-3 text-lg font-bold">Faixa de preço</h3>
+      <section aria-labelledby={`${filterId}-price`}>
+        <h3 id={`${filterId}-price`} className="mb-3 text-lg font-bold">Faixa de preço</h3>
         {prices.length ? <PriceFilter key={`${min}:${max}:${value.minPrice}:${value.maxPrice}`} min={min} max={max} step={10 ** -decimals} value={value} onChange={onChange} /> : <p className="text-sm text-[#b39463]">{loading ? 'Carregando preços...' : 'Nenhum preço disponível.'}</p>}
       </section>
 
-      <section aria-labelledby="chain-filter-title">
-        <h3 id="chain-filter-title" className="mb-2 text-lg font-bold">Rede</h3>
+      <section aria-labelledby={`${filterId}-chain`}>
+        <h3 id={`${filterId}-chain`} className="mb-2 text-lg font-bold">Rede</h3>
         {countBy(items, 'chain').map(([chain, count]) => (
           <button key={chain} type="button" aria-pressed={value.chain === chain} className={listClass} onClick={() => onChange({ chain: value.chain === chain ? undefined : chain })}>
             <span>{chainLabels[chain] ?? chain}</span><span>({count})</span>
