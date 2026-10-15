@@ -36,13 +36,13 @@ Um aviso não bloqueante de `ServiceWorkerRegistration.update()` apareceu em nav
 
 A inspeção dos 150 arquivos versionados iniciais não encontrou arquivos de chaves privadas, pastas de credenciais, `node_modules`, `dist`, relatórios temporários, logs ou padrões usuais de tokens reais. As contas `ada@example.com` e `bruno@example.com` e respectivas senhas são fixtures fictícias intencionais. Essa inspeção cobre a árvore atual e padrões comuns; não constitui auditoria exaustiva de todo o histórico Git.
 
-No fim da revisão há cinco arquivos locais para revisar e commitar: `.env.example`, `.gitignore`, `README.md`, `docs/implementation-checklist.md` e este relatório. Nenhum arquivo da aplicação foi modificado.
+Essa revisão ajustou somente documentação, exemplo de ambiente e regras de ignore. Nenhum arquivo da aplicação foi modificado. O estado atual de alterações locais deve ser consultado com `git status`, pois este relatório registra a verificação daquela data.
 
 ## Requisitos e pendências
 
 | Grupo do enunciado | Situação atual |
 | --- | --- |
-| Stack, execução com mocks, comandos e instalação limpa | Implementados e executados. Contratos, cache, sessão, idempotência e Socket.IO estão documentados em `ARCHITECTURE.md` e nos documentos de etapas. |
+| Stack, execução com mocks, comandos e instalação limpa | Implementados e executados. Contratos, cache, sessão, idempotência e Socket.IO estão consolidados em [ARCHITECTURE.md](ARCHITECTURE.md). |
 | Descoberta, conta, carteiras, favoritos, carrinho, compra e recibo | Suítes funcionais aprovadas, incluindo recuperação de falhas e isolamento de usuários. Isso não comprova cobertura exaustiva de cada cenário do enunciado. |
 | Desktop/mobile, teclado, foco, zoom e movimento reduzido | Exercitados nos testes existentes; comparação visual ampla e auditoria completa de acessibilidade ainda não demonstradas. |
 | Regressão visual Playwright — seção 9 | **Pendente:** baselines versionadas de início, detalhe, carrinho e pagamento. Capturas em `/tmp` sem comparação não atendem ao requisito. Relatório HTML E2E, traces de falha e controle sistemático do relógio também não estão entregues. |

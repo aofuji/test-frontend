@@ -2,9 +2,9 @@
 
 O aplicativo usa React e TypeScript com Vite. TanStack Router mantém rotas públicas e protegidas; TanStack Query guarda dados remotos; Axios chama `/api`; MSW intercepta essas chamadas quando `VITE_ENABLE_MOCKS=true`. Os contratos ficam em `src/api/types`, o estado simulado em `src/mocks` e as telas em `src/routes`. Esta configuração permite executar a demonstração sem backend externo.
 
-O [enunciado oficial](desafio-frontend.md) é a fonte dos requisitos. O [checklist](implementation-checklist.md) mostra o progresso e as pendências. Os contratos e as decisões de checkout, carteiras e pedidos estão detalhados em [Etapa 6](etapa-6-checkout.md). A política de carrinho e os testes executados na etapa anterior constam de [Etapa 5](etapa-5-review.md).
+O enunciado fornecido pela Jungle Gaming é a fonte dos requisitos. Os contratos REST e as políticas de carrinho, cotação, carteiras e pedidos estão consolidados neste documento. A [revisão de entrega](delivery-review.md) registra as verificações executadas e as lacunas restantes.
 
-Os mocks persistem sessão, perfil, favoritos, NFTs alterados, carrinho, carteiras e pedidos no `localStorage`, separados por usuário quando privados. A camada MSW é a autoridade para preços, totais, cotações, estados de pagamento e idempotência; os componentes exibem a resposta e invalidam as consultas relevantes. A conexão REST é simulada; não há blockchain nem gateway real. As comparações visuais usam as referências locais em `design-reference/figma-layout.png`, `design-reference/Desktop/` e `design-reference/Mobile/`; os exports estáticos não comprovam interações do protótipo original.
+Os mocks persistem sessão, perfil, favoritos, NFTs alterados, carrinho, carteiras e pedidos no `localStorage`, separados por usuário quando privados. A camada MSW é a autoridade para preços, totais, cotações, estados de pagamento e idempotência; os componentes exibem a resposta e invalidam as consultas relevantes. A conexão REST é simulada; não há blockchain nem gateway real. A referência visual é o Figma fornecido no desafio; as imagens usadas pela aplicação ficam em `public/`. Os exports estáticos usados durante a implementação não comprovam interações do protótipo original.
 
 ## Autenticação social pendente
 
@@ -32,7 +32,7 @@ No detalhe, a edição selecionada determina a disponibilidade e o limite inteir
 
 ## Hero e possibilidade de carrossel
 
-O frame de Início em `design-reference/figma-layout.png` mostra um banner e três pontos laranja iguais. A inspeção dos exports locais e dos assets disponíveis não identificou outros dois slides definidos, com imagens, textos e destinos próprios. A presença dos pontos sugere um carrossel, mas não confirma seu conteúdo nem seu comportamento. Os três NFTs retornados pela consulta de destaques também não definem, por si só, três banners do hero.
+O frame de Início do Figma mostra um banner e três pontos laranja iguais. A inspeção dos exports locais e dos assets disponíveis não identificou outros dois slides definidos, com imagens, textos e destinos próprios. A presença dos pontos sugere um carrossel, mas não confirma seu conteúdo nem seu comportamento. Os três NFTs retornados pela consulta de destaques também não definem, por si só, três banners do hero.
 
 Por isso, o hero em `src/routes/index.tsx` mantém um único banner, usando o primeiro NFT da consulta de destaques existente. Os pontos são decorativos, marcados com `aria-hidden="true"`, sem botões, estado ativo ou troca automática. O botão EXPLORAR continua levando a `#catalogo`, e a imagem mantém o link para os detalhes do NFT. Loading, erro e ausência de destaque continuam tratados. A imagem foi ajustada para 450 × 450 px no desktop, com adaptação à largura no mobile.
 
@@ -44,7 +44,89 @@ A verificação do hero atual no navegador cobriu a imagem de 450 × 450 px, os 
 
 A Home consulta a mesma rota REST do catálogo com `featuredOnly=true`, `pageSize=3` e cenário MSW da URL. A seleção dos IDs está em `src/mocks/fixtures/nfts.ts`; o filtro ocorre em `src/mocks/apiState.ts`, após ler o estado atual dos NFTs. Por isso os cartões de destaque exibem preço e disponibilidade atualizados também após `nft.updated`. Loading, erro e vazio são tratados separadamente do catálogo. Não há novo endpoint nem valores de negócio definidos no componente.
 
-O contrato de NFT inclui `images: { src, alt, label }[]`. As fixtures apontam para cinco SVGs abstratos locais em `public/nft-art/`, um por categoria e uma segunda vista da peça Aurora. Essas imagens são **substitutos provisórios** para exercitar imagem principal, miniaturas, seleção por teclado e falha de carregamento; não pretendem reproduzir a arte ou a composição do Figma, que não está disponível. A galeria informa quando uma imagem não carrega e mantém as outras miniaturas utilizáveis. A rota `/api/__mock/profile/read-failure` aceita `{ enabled: true | false }` para reproduzir falha HTTP 500 na consulta do perfil e testar recuperação por nova tentativa; o reset limpa esse cenário.
+O contrato de NFT inclui `images: { src, alt, label }[]`. As fixtures utilizam imagens PNG locais de `public/images/nfts/`. A galeria deduplica imagens pela URL, informa falhas de carregamento e permite navegar pelas imagens distintas disponíveis, sem duplicar assets para preencher o layout. A rota `/api/__mock/profile/read-failure` aceita `{ enabled: true | false }` para reproduzir falha HTTP 500 na consulta do perfil e testar recuperação por nova tentativa; o reset limpa esse cenário.
+
+## Carrinho e cache por sessão
+
+O carrinho usa `GET /api/cart`, `POST /api/cart/items` (`nftId`, `editionId`, `quantity`), `PATCH /api/cart/items/:itemId` (`quantity`), `DELETE /api/cart/items/:itemId` e `PATCH /api/cart/items` (`couponCode`, ou `null` para remover). As respostas de sucesso contêm `{ cart: Cart }`; falhas incluem validação, item/edição inexistente, estoque insuficiente, NFT indisponível, cupom inválido/expirado e erros transitórios. Os tipos estão em `src/api/types/cart.ts`.
+
+A API valida quantidade inteira positiva e estoque por NFT/edição. Edições sem estoque explícito conservam limite padrão 1; as fixtures incluem Aurora edição A com estoque 5 e Pixel Reef edição A com estoque 3. Os controles respeitam os limites e possuem nomes acessíveis por NFT/edição. `SAVE10` e `EXPIRED` permitem reproduzir aplicação/remoção de desconto e erro de cupom; formulário vazio não remove um cupom acidentalmente.
+
+Subtotal, desconto, taxa e total vêm da API simulada, calculados com `decimal.js` e transportados como strings decimais. A atualização otimista altera a quantidade; os totais anteriores da API continuam identificados como em atualização até a resposta autoritativa. O hook cancela consultas em voo, guarda o snapshot, faz rollback após HTTP ou falha de conexão, aplica a resposta de sucesso e aguarda a invalidação em `onSettled`. As mutations compartilham `scope: { id: 'cart-session' }`; controles ficam bloqueados durante atualizações e tentativas posteriores limpam erros anteriores.
+
+O cache do carrinho usa `['cart', 'current', userId]` ou `guest`. Login/cadastro/logout bem-sucedidos cancelam consultas, removem cache de carrinho e dados privados e invalidam a consulta da identidade atual. Falha de logout preserva sessão e permite nova tentativa. A mesclagem do visitante soma quantidades sem duplicar NFT/edição, limita ao estoque, elimina indisponíveis e limpa o carrinho visitante. Refresh mantém os itens persistidos e a troca de usuário não compartilha carrinhos privados.
+
+Adição, remoção, quantidade, cupom e mesclagem bem-sucedidos invalidam as cotações do respectivo dono; mutações recusadas preservam-nas. Carrinho vazio não gera cotação. A interface mantém skeleton, estado vazio, erros anunciados e nova tentativa. Os testes cobrem rollback, persistência, isolamento e larguras 320/375/768/1440; isso não equivale a certificação WCAG ou teste com leitor de tela real.
+
+## Carteiras, cotações e pedidos: contratos REST
+
+Toda resposta de negócio vem dos handlers MSW em `src/mocks/handlers.ts`, com contratos TypeScript em `src/api/types` e transporte Axios em `src/api`. Não há blockchain, extensão de carteira, gateway ou backend separado.
+
+| Método e caminho | Requisição | Resposta de sucesso | Falhas principais |
+| --- | --- | --- | --- |
+| `GET /api/wallets` | Sessão ativa | `{ wallets: Wallet[] }` | 401 |
+| `POST /api/wallets` | `label`, `address`, `network`, `kind?`, `isDefault?`, `scenario?` | 201 `{ wallet: Wallet }` | 400, 409, 500, conexão |
+| `PATCH /api/wallets/:walletId` | Campos parciais e `status?` | `{ wallet: Wallet }` | 400, 401, 404, 409, 500, conexão |
+| `POST /api/quotes` | `couponCode?`, `scenario?` | `{ quote: { id, cart, expiresAt } }` | 400, 409, 500, conexão |
+| `GET /api/quotes/:quoteId` | ID da cotação do dono atual | `{ quote: Quote }` | 404 |
+| `POST /api/orders` | `quoteId`, `walletId`, `network`, `idempotencyKey`, `scenario?` | 201 `{ order: Order }` | 400, 401, 404, 409, 500, conexão |
+| `GET /api/orders/:orderId` | Sessão ativa, ID do pedido | `{ order: Order }` | 401, 404 |
+| `GET /api/orders/attempts/:idempotencyKey` | Sessão ativa, chave da tentativa | `{ order: Order }` | 401, 404 |
+| `POST /api/__mock/reset-auth` | Sem corpo | `{ ok: true }` | Restaura autenticação, carrinho, carteiras e pedidos ao estado inicial. |
+
+`Wallet` contém ID, nome, endereço, rede (`ethereum`, `polygon`, `base`), tipo (`primary` ou `secondary`), status de conexão, indicador de principal e datas. O endereço EVM é validado no mock. Cada usuário mantém sua lista separada no `localStorage`. A carteira principal é única; alterar o tipo para principal promove a carteira selecionada. A carteira deve estar conectada para confirmar um pedido.
+
+`Order` contém ID, estado, referência fictícia da transação, ID da cotação, snapshot da carteira e dos itens, cupom e totais, rede e datas. Valores ETH são strings decimais. O snapshot é feito no momento da criação e não volta a consultar preços de catálogo para mostrar o recibo.
+
+## Campos de carteiras e limites de persistência
+
+O formulário segue duas colunas no desktop, com cinco linhas em cada coluna, adaptadas ao mobile. Apenas os campos suportados pelo contrato de carteiras são enviados em POST/PATCH; os demais reproduzem o Figma como estado local, sem persistência inventada.
+
+| Coluna | Campo | Estado, validação e persistência |
+| --- | --- | --- |
+| Esquerda | Nome de exibição | Estado local, inicializado com o nome da sessão. Não atualiza o perfil nem bloqueia o cadastro da carteira. |
+| Esquerda | Rede | `form.network`; enum Ethereum, Polygon ou Base validado e persistido pela API. |
+| Esquerda | Endereço da carteira | `form.address`; EVM (`0x` e 40 dígitos hexadecimais), erro associado ao campo, persistido pela API. |
+| Esquerda | Tipo de carteira | `form.kind`; principal/secundária, enum e regra de principal única da API. Persistido sem obrigatoriedade extra. |
+| Esquerda | E-mail | Estado local, inicializado com o e-mail da sessão. Não altera conta/perfil nem executa suas validações implicitamente. |
+| Direita | Apelido da carteira | `form.label`; nome não vazio conforme API, sem limite de tamanho inventado. Persistido pela API. |
+| Direita | Nome do perfil | Estado local livre; sem regra ou persistência no contrato de carteiras. |
+| Direita | ENS ou carteira secundária (opcional) | Estado local opcional, sem resolução ENS, validação EVM ou vínculo automático com outra carteira. |
+| Direita | Código de indicação | Estado local; não verifica códigos nem concede desconto/recompensa. |
+| Direita | Nome ENS | Estado local e seletor `.eth`; sem resolução, registro, validação ENS ou persistência. |
+
+Os campos complementares usam React state, sem localStorage. Refresh restaura nome/e-mail da sessão e limpa os demais. O aviso ao lado de Salvar informa que apenas apelido, rede, endereço e tipo são salvos. Campos complementares não ganharam `required`, `pattern` ou validação nativa que bloqueie o envio.
+
+Na seção **Carteira secundária**, o checkbox **Igual à carteira principal** é local: não chama a API nem sincroniza ou duplica carteiras. **Adicionar** prepara o formulário existente com tipo secundário; se marcado, copia endereço/rede da principal para o rascunho e mantém o apelido vazio. O usuário revisa e salva pelo POST existente. Sem principal, o checkbox fica desabilitado. O **Adicionar** do topo prepara novo rascunho; listagem, edição, conexão e definição da principal mantêm seus handlers.
+
+`npm run test:wallets:browser` verifica os dez campos, ordem/alinhamento, estado local, payload, validação EVM, persistência, refresh, edição, controles da secundária e reflow. Executado diretamente, requer servidor e Chromium/Chrome conforme o README; aceita `PLAYWRIGHT_MODULE`, `CHROME_PATH` e `WALLETS_TEST_URL`. Também integra `npm run test`, que gerencia o servidor automaticamente.
+
+## Idempotência, cotação e persistência
+
+A cotação dura cinco minutos e pertence ao carrinho do usuário atual. `POST /api/orders` primeiro busca uma tentativa já registrada por usuário e chave. Payload idêntico (`quoteId`, `walletId`, `network`) devolve o mesmo pedido; payload diferente devolve `409 IDEMPOTENCY_CONFLICT`. Os cenários de teste não fazem parte da identidade da compra. Antes de criar um pedido, o mock confere expiração, preço, disponibilidade, itens, cupom, totais e carteira. Uma divergência rejeita a compra e exige nova cotação e revisão.
+
+A interface grava `userId`, `quoteId`, chave, carteira, rede e cenário em `nft-marketplace.checkout-attempt.v1`. Após refresh ou login, consulta primeiro o pedido pela chave. Se ainda não foi criado, recupera a cotação e reutiliza a chave. O estado da API fica em `nft-marketplace.order-state.v1`; carteiras em `nft-marketplace.wallet-state.v1`; carrinho e cotações em `nft-marketplace.cart-state.v1`. Tudo é local ao navegador, sem persistência entre dispositivos. A API faz o isolamento por usuário. Logout limpa o cache privado do TanStack Query; a tentativa só é usada quando o `userId` coincide.
+
+No timeout antes da criação não há pedido; a primeira chamada falha e a mesma tentativa pode ser reenviada após refresh. No timeout após a criação, a primeira chamada falha na rede, mas o pedido já existe no estado MSW; consultar pela chave ou reenviar o mesmo payload retorna o mesmo ID. Pedidos confirmados debitam do carrinho as quantidades do snapshot uma única vez por ID, com registro persistente de aplicação. Itens adicionais do carrinho não são removidos pelo helper de débito. Pedidos recusados e erros mantêm os itens. Após uma resposta de confirmação ou a evolução posterior de um pedido pendente, o cliente invalida o prefixo de todas as chaves de carrinho, incluindo a do usuário autenticado.
+
+## Estados de pagamento e recuperação
+
+- `confirmed`: terminal, com referência fictícia de transação e recibo; a interface confirma somente após resposta da API.
+- `declined`: terminal, sem transação; mantém o carrinho. Nova compra exige nova cotação e chave.
+- `pending`: criado sem transação. O estado MSW pode promovê-lo por timer ou na segunda consulta por ID/chave, emitindo `order.updated`. No refresh, a consulta reativa o timer. O recibo não faz polling periódico nem fabrica confirmação na interface.
+- `pending-manual`: cenário de teste que permanece pendente até `POST /api/__mock/realtime/order`, permitindo exercitar reconexão e recusa sem promoção automática.
+
+A simulação de sessão expirada encerra a sessão na primeira chamada da tentativa. Após novo login do mesmo usuário, a cotação e a chave são recuperadas, e o reenvio pode concluir o pedido. O recibo remove a tentativa local ao receber a confirmação, inclusive após pendência. Uma falha transitória na consulta de recuperação bloqueia novo envio e oferece nova tentativa para não perder a chave.
+
+## Cenários, testes e limites da simulação
+
+No servidor de desenvolvimento e viewport desktop, o seletor do checkout oferece confirmação, recusa, pendência, timeout antes/depois da criação, cotação expirada, preço alterado, NFT esgotado, sessão expirada e HTTP 500. Os controles técnicos ficam ocultos no mobile e no build de produção; os handlers de cenário continuam disponíveis com MSW ativo. Carteiras têm cenários de recusa de conexão, desconexão, erro HTTP e falha de rede. O conflito de idempotência é reproduzido reenviando uma chave com rede ou carteira diferentes.
+
+`POST /api/__mock/reset-auth` restaura o estado inicial de autenticação, perfis, favoritos, NFTs, carrinhos, cotações, carteiras, pedidos e conexões simuladas, e limpa a tentativa persistida de checkout. As suítes usam armazenamento isolado e reset quando necessário. O estado pertence ao navegador atual; não há persistência compartilhada entre dispositivos nem segurança de backend real.
+
+Os comandos atuais de instalação, cenários e execução estão no [README](../README.md). `npm run test` inicia e encerra Vite com mocks automaticamente e executa as suítes existentes. `npm run test:cart` e `npm run test:checkout` executam os testes de API/estado; `npm run test:cart:browser` e `npm run test:checkout:browser` requerem servidor já iniciado. Playwright está declarado no projeto; é necessário Chromium instalado ou `CHROME_PATH`. `PLAYWRIGHT_MODULE`, `CART_TEST_URL` e `CHECKOUT_TEST_URL` continuam aceitos como overrides opcionais.
+
+As verificações registradas cobrem quantidades/estoque, cupom, totais, mesclagem e isolamento, falhas e rollback, invalidação de cotação, compra completa, recusas e pendências, idempotência/timeout, sessão expirada e edição persistida de carteira. TypeScript, lint, build e 15 suítes passaram na [revisão de entrega](delivery-review.md); a consolidação documental não constitui nova execução desses testes. Cobertura integral do enunciado, baselines visuais, auditorias Lighthouse completas e validação em hospedagem pública continuam com o alcance e as pendências descritos nessa revisão.
 
 ## Tempo real
 

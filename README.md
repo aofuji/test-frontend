@@ -1,8 +1,8 @@
 # NFT Marketplace — test-frontend
 
-Marketplace demonstrativo em React, TypeScript e Vite. Catálogo, conta, carrinho, carteiras, checkout e pedidos usam APIs REST simuladas por MSW no próprio navegador. Não há blockchain ou pagamento real. O [enunciado oficial](docs/desafio-frontend.md), o [checklist de progresso](docs/implementation-checklist.md) e a [arquitetura](docs/ARCHITECTURE.md) ficam em `docs`.
+Marketplace demonstrativo em React, TypeScript e Vite. Catálogo, conta, carrinho, carteiras, checkout e pedidos usam APIs REST simuladas por MSW no próprio navegador. Não há blockchain ou pagamento real. As decisões técnicas e os contratos estão na [arquitetura](docs/ARCHITECTURE.md); as verificações e pendências estão na [revisão de entrega](docs/delivery-review.md).
 
-A Home traz NFTs em destaque da mesma API do catálogo. O detalhe tem galeria com imagem principal, miniaturas e seleção por teclado. As referências visuais do Figma estão em `design-reference/`.
+A Home traz NFTs em destaque da mesma API do catálogo. O detalhe tem galeria com imagem principal, miniaturas e seleção por teclado. A referência visual é o Figma fornecido no desafio. Os assets usados pela aplicação permanecem em `public/`.
 
 ## Execução local
 
@@ -86,7 +86,7 @@ O carrinho e o catálogo se atualizam, e uma cotação anterior precisa ser refe
 
 Adicione um NFT disponível, entre em uma conta e abra `/checkout`. O primeiro clique em **Confirmar compra** gera uma cotação para revisão; o segundo envia o pedido. No servidor de desenvolvimento, em viewport desktop, abra **Cenário determinístico** e escolha confirmação, recusa, pendência, timeout antes/depois da criação, cotação expirada, preço alterado, NFT esgotado, sessão expirada ou erro HTTP 500. Os controles técnicos ficam ocultos no mobile e no build de produção; os endpoints de cenário continuam disponíveis com MSW ativo. A tentativa e sua chave persistem após refresh. Os timeouts de criação falham na primeira chamada da tentativa; repetir a mesma tentativa ou recarregar permite recuperá-la. O pedido pendente evolui na API simulada e avisa o recibo por Socket.IO. Carteiras podem ser cadastradas, editadas, conectadas, desconectadas e promovidas a principais em `/wallets`.
 
-Os [contratos REST, política de idempotência e limitações](docs/etapa-6-checkout.md) estão documentados separadamente. A mudança de payload usando uma chave já usada devolve HTTP 409. Os testes de endpoint reproduzem esse conflito e conferem que pedidos não são duplicados.
+Os [contratos REST, política de idempotência e limitações](docs/ARCHITECTURE.md#carteiras-cotações-e-pedidos-contratos-rest) estão consolidados na arquitetura. A mudança de payload usando uma chave já usada devolve HTTP 409. Os testes de endpoint reproduzem esse conflito e conferem que pedidos não são duplicados.
 
 ## Verificação
 
