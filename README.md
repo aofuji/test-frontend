@@ -1,8 +1,10 @@
-# NFT Marketplace — test-frontend
+# KURIO — NFT Marketplace
 
-Marketplace demonstrativo em React, TypeScript e Vite. Catálogo, conta, carrinho, carteiras, checkout e pedidos usam APIs REST simuladas por MSW no próprio navegador. Não há blockchain ou pagamento real. As decisões técnicas e os contratos estão na [arquitetura](docs/ARCHITECTURE.md); as verificações e pendências estão na [revisão de entrega](docs/delivery-review.md).
+KURIO é um marketplace demonstrativo de NFTs desenvolvido para um desafio de frontend, utilizando React, TypeScript e Vite. Catálogo, conta, carrinho, carteiras, checkout e pedidos usam APIs REST simuladas por MSW no próprio navegador. Não há blockchain ou pagamento real. As decisões técnicas e os contratos estão na [arquitetura](docs/ARCHITECTURE.md); as verificações e pendências estão na [revisão de entrega](docs/delivery-review.md).
 
-A Home traz NFTs em destaque da mesma API do catálogo. O detalhe tem galeria com imagem principal, miniaturas e seleção por teclado. A referência visual é o Figma fornecido no desafio. Os assets usados pela aplicação permanecem em `public/`.
+A página inicial traz NFTs em destaque da mesma API do catálogo. O detalhe tem galeria com imagem principal, miniaturas e seleção por teclado. A referência visual é o Figma fornecido no desafio. Os assets usados pela aplicação permanecem em `public/`.
+
+**Demonstração publicada:** [KURIO na Vercel](https://test-frontend-five-dun.vercel.app/). Para iniciar com o catálogo no cenário padrão, acesse [a listagem de NFTs](https://test-frontend-five-dun.vercel.app/?availability=all&sort=newest&page=1&scenario=normal).
 
 ## Execução local
 
@@ -71,7 +73,7 @@ Para testar erro de leitura do perfil, com sessão ativa execute `await fetch('/
 
 ## Tempo real simulado
 
-Com mocks ativos, `socket.io-client` conecta por WebSocket à mesma origem. O MSW intercepta o transporte Socket.IO, enquanto os endpoints REST continuam sendo a fonte dos dados. Para reproduzir uma alteração de preço e estoque com o navegador aberto, execute no console:
+Com `VITE_ENABLE_MOCKS=true`, o cliente Socket.IO inicia a comunicação com a mesma origem, mas o **MSW intercepta e simula o transporte Socket.IO no navegador**, incluindo handshake, heartbeat e eventos. Portanto, **não há um servidor Socket.IO real na Vercel**, e a ausência de uma conexão nativa na aba **Network > Socket** do DevTools é esperada nesse modo. O registro `[MSW] ... /socket.io/` no console indica a interceptação, não necessariamente um erro. Os endpoints REST continuam sendo a fonte dos dados. Para reproduzir uma alteração de preço e estoque com o navegador aberto, execute no console:
 
 ```js
 await fetch('/api/__mock/realtime/nft', {
@@ -80,7 +82,7 @@ await fetch('/api/__mock/realtime/nft', {
 })
 ```
 
-O carrinho e o catálogo se atualizam, e uma cotação anterior precisa ser refeita. Use `delivery: 'duplicate'`, `'old'` ou `'out-of-order'` no corpo para cenários de ordenação. Para desconectar e reconectar o mock, envie `{ disconnected: true }` e depois `{ disconnected: false }` para `POST /api/__mock/realtime/connection`; na volta, o cliente reconcilia dados ativos pela API REST. `POST /api/__mock/realtime/order` recebe `{ orderId, status: 'confirmed' | 'declined' }` para concluir um pedido pendente pertencente à sessão. Para mantê-lo pendente até esse comando, crie o pedido via REST com `scenario: 'pending-manual'`. `POST /api/__mock/reset-auth` e refresh restauram o cenário inicial. Esses endpoints são exclusivos da demonstração. O protocolo e seus limites estão em [ARCHITECTURE.md](docs/ARCHITECTURE.md).
+O carrinho e o catálogo se atualizam, e uma cotação anterior precisa ser refeita. O indicador de conexão utiliza `role="status"` para tecnologias assistivas e fica visualmente oculto (`sr-only`). Em desconexões simuladas, o cliente tenta recuperar a conexão e reconciliar os dados pela API REST; há também uma rotina de recuperação enquanto permanece desconectado. Use `delivery: 'duplicate'`, `'old'` ou `'out-of-order'` no corpo para cenários de ordenação. Para desconectar e reconectar o mock, envie `{ disconnected: true }` e depois `{ disconnected: false }` para `POST /api/__mock/realtime/connection`; na volta, o cliente reconcilia dados ativos pela API REST. `POST /api/__mock/realtime/order` recebe `{ orderId, status: 'confirmed' | 'declined' }` para concluir um pedido pendente pertencente à sessão. Para mantê-lo pendente até esse comando, crie o pedido via REST com `scenario: 'pending-manual'`. `POST /api/__mock/reset-auth` e refresh restauram o cenário inicial. Esses endpoints são exclusivos da demonstração. O protocolo e seus limites estão em [ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Reproduzir checkout e falhas
 
@@ -120,7 +122,7 @@ npm run test -- auth-mobile
 npm run test -- catalog-pagination
 ```
 
-As cinco suítes antigas tiveram seus seletores atualizados, preservando verificações funcionais. A última execução completa aprovou **16/16 suítes**: 13 Playwright e 3 de API/estado (17 testes individuais de API), sem falhas ou testes ignorados. Isso não equivale a cobertura integral de cada requisito nem substitui regressão visual com baselines. O [relatório de revisão de entrega](docs/delivery-review.md) registra a validação de instalação limpa e as pendências do enunciado.
+As cinco suítes antigas tiveram seus seletores atualizados, preservando verificações funcionais. Segundo a última validação registrada neste README, **16/16 suítes** foram aprovadas: 13 Playwright e 3 de API/estado (17 testes individuais de API), sem falhas ou testes ignorados. Confirme esse total novamente com `npm run test` antes da submissão, pois resultados de execuções anteriores podem divergir. Isso não equivale a cobertura integral de cada requisito nem substitui regressão visual com baselines. O [relatório de revisão de entrega](docs/delivery-review.md) registra a validação de instalação limpa e as pendências do enunciado.
 
 A auditoria de acessibilidade pode ser reproduzida com `npm run test -- accessibility-browser`: verifica teclado, foco, formulários e 31 análises axe em desktop/mobile, reutilizando o axe-core incluído no Lighthouse. O escopo e as limitações estão na [arquitetura](docs/ARCHITECTURE.md#acessibilidade); não substitui testes com leitores de tela reais.
 
@@ -129,7 +131,9 @@ Os comandos específicos `test:cart`, `test:checkout`, `test:profile` e `test:*:
 Alternativas opcionais:
 
 - `CHROME_PATH`: caminho de um Chrome/Chromium já instalado, em vez do Chromium do Playwright. Exemplo em Linux: `CHROME_PATH=/usr/bin/google-chrome npm run test`.
+
 - `PLAYWRIGHT_MODULE`: caminho de uma instalação externa, mantido por compatibilidade. Não é necessário após `npm ci`.
+
 - `TEST_BASE_URL`: faz `npm run test` usar um servidor de desenvolvimento existente com mocks, sem iniciar outro. As suítes individuais continuam aceitando suas variáveis `AUTH_TEST_URL`, `CART_TEST_URL`, `CATALOG_TEST_URL`, `CHECKOUT_TEST_URL`, `HOME_TEST_URL`, `NFT_TEST_URL`, `PROFILE_TEST_URL`, `REALTIME_TEST_URL` e `WALLETS_TEST_URL`.
 
 ### Lighthouse
@@ -156,4 +160,4 @@ O `vercel.json` já contém o fallback SPA `/(.*)` → `/index.html`, conforme a
 
 Configurações esperadas: preset **Vite**, instalação `npm ci`, build `npm run build`, saída `dist` e Node.js **24.x**. Mantenha `VITE_ENABLE_MOCKS=true` no ambiente de build da demonstração; `.env` já fornece esse padrão. Não é necessário backend, token de API nem conexão blockchain.
 
-Nenhum deploy é feito por esses comandos locais. Antes de enviar o desafio, registre a URL pública e o commit publicado, teste acesso direto/refresh das rotas, autenticação, compra e Socket.IO na hospedagem. A configuração local correta não comprova que uma versão publicada funciona.
+Nenhum deploy é feito por esses comandos locais. A demonstração está disponível em [https://test-frontend-five-dun.vercel.app/](https://test-frontend-five-dun.vercel.app/). Antes da submissão, confirme que o último commit está publicado e valide acesso direto/refresh das rotas, autenticação, compra e atualizações simuladas em tempo real. A verificação local do Socket.IO com MSW não comprova, por si só, a configuração de um deploy específico.
