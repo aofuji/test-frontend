@@ -1,23 +1,33 @@
-import { Link, Outlet, createRootRouteWithContext } from '@tanstack/react-router'
-import { Home, LogOut, ShoppingCart, UserRound, WalletCards } from 'lucide-react'
+import {
+  Link,
+  Outlet,
+  createRootRouteWithContext,
+} from "@tanstack/react-router";
+import {
+  Home,
+  LogOut,
+  ShoppingCart,
+  UserRound,
+  WalletCards,
+} from "lucide-react";
 
-import { useLogout, useSession } from '@/api/hooks/useAuth'
-import { Button } from '@/components/ui/button'
-import type { RouterContext } from '@/router'
-import { useRealtime } from '@/realtime/useRealtime'
-import '../App.css'
+import { useLogout, useSession } from "@/api/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import type { RouterContext } from "@/router";
+import { useRealtime } from "@/realtime/useRealtime";
+import "../App.css";
+import { Footer } from "@/components/layout/footer";
 
 const navigationItems = [
-  { to: '/', label: 'Inicio', icon: Home },
-  { to: '/cart', label: 'Carrinho', icon: ShoppingCart },
-  { to: '/profile', label: 'Perfil', icon: UserRound },
-  { to: '/wallets', label: 'Carteiras', icon: WalletCards },
-]
+  { to: "/", label: "Inicio", icon: Home },
+  { to: "/cart", label: "Carrinho", icon: ShoppingCart },
+  { to: "/profile", label: "Perfil", icon: UserRound },
+];
 
 function RootLayout() {
-  const sessionQuery = useSession()
-  const logoutMutation = useLogout()
-  const realtimeNotice = useRealtime(sessionQuery.data?.user.id ?? null)
+  const sessionQuery = useSession();
+  const logoutMutation = useLogout();
+  const realtimeNotice = useRealtime(sessionQuery.data?.user.id ?? null);
 
   return (
     <div className="min-h-svh bg-background text-foreground">
@@ -35,19 +45,28 @@ function RootLayout() {
             aria-label="Navegacao principal"
           >
             {navigationItems.map((item) => {
-              const Icon = item.icon
+              const Icon = item.icon;
               return (
                 <Link
                   key={item.to}
                   to={item.to}
                   className="flex items-center gap-1.5 border-b border-transparent px-2 py-1.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground"
-                  activeProps={{ className: 'flex items-center gap-1.5 border-b border-primary px-2 py-1.5 text-xs font-semibold text-primary' }}
+                  activeProps={{
+                    className:
+                      "flex items-center gap-1.5 border-b border-primary px-2 py-1.5 text-xs font-semibold text-primary",
+                  }}
                 >
                   <Icon aria-hidden="true" className="size-3.5 sm:hidden" />
                   {item.label}
                 </Link>
-              )
+              );
             })}
+            <span
+              className="cursor-default whitespace-nowrap border-b border-transparent px-2 py-1.5 text-xs font-semibold text-muted-foreground"
+              title="Conteúdo em breve"
+            >
+              Aprenda
+            </span>
           </nav>
           <div className="flex max-w-full min-w-0 items-center gap-2">
             {logoutMutation.error ? (
@@ -69,10 +88,12 @@ function RootLayout() {
                   onClick={() => {
                     logoutMutation.mutate(undefined, {
                       onSuccess: () => {
-                        window.dispatchEvent(new Event('nft-marketplace:logout'))
-                        window.location.assign('/')
+                        window.dispatchEvent(
+                          new Event("nft-marketplace:logout"),
+                        );
+                        window.location.assign("/");
                       },
-                    })
+                    });
                   }}
                 >
                   <LogOut aria-hidden="true" />
@@ -81,7 +102,12 @@ function RootLayout() {
               </>
             ) : (
               <>
-                <Button asChild variant="ghost" size="sm" className="rounded-sm">
+                <Button
+                  asChild
+                  variant="ghost"
+                  size="sm"
+                  className="rounded-sm"
+                >
                   <Link to="/login" aria-label="Login">
                     <UserRound aria-hidden="true" />
                     <span className="max-[260px]:sr-only">Login</span>
@@ -100,19 +126,21 @@ function RootLayout() {
       </header>
 
       <main className="mx-auto min-h-[calc(100svh-160px)] w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-        {realtimeNotice ? <p role="status" aria-live="polite" className="mb-5 rounded-lg border bg-muted px-4 py-3 text-sm">{realtimeNotice}</p> : null}
+        {realtimeNotice ? (
+          <p
+            role="status"
+            aria-live="polite"
+            className="mb-5 rounded-lg border bg-muted px-4 py-3 text-sm"
+          >
+            {realtimeNotice}
+          </p>
+        ) : null}
         <Outlet />
       </main>
 
-      <footer className="border-t border-border bg-card font-mono">
-        <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-8 text-xs text-muted-foreground sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-          <span className="font-black tracking-[0.18em] text-foreground">KURIO</span>
-          <span>Feito para colecionadores, criadores e cultura digital.</span>
-          <span>© 2026 Kurio.</span>
-        </div>
-      </footer>
+      <Footer/>
     </div>
-  )
+  );
 }
 
 function NotFoundPage() {
@@ -135,17 +163,17 @@ function NotFoundPage() {
         </Button>
       </div>
     </section>
-  )
+  );
 }
 
 const defaultCatalogSearch = {
-  availability: 'all',
-  sort: 'newest',
+  availability: "all",
+  sort: "newest",
   page: 1,
-  scenario: 'normal',
-} as const
+  scenario: "normal",
+} as const;
 
 export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootLayout,
   notFoundComponent: NotFoundPage,
-})
+});
