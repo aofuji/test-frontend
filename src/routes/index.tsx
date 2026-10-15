@@ -236,13 +236,13 @@ function HomePage() {
 
         <div className="space-y-4">
           <SectionHeading eyebrow="Mercado" title="Explore a coleção" id="catalog-heading" />
-          <div className="flex items-end justify-between gap-4 border-b border-border pb-2">
+          <div className="flex flex-col gap-3 border-b border-border pb-2 sm:flex-row sm:items-end sm:justify-between">
             <div className="flex items-center gap-4 overflow-x-auto text-xs font-semibold" aria-label="Visualização do catálogo">
               <button type="button" className={search.availability === 'all' && search.sort === 'newest' ? 'whitespace-nowrap border-b-2 border-primary pb-2 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-2 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ availability: 'all', sort: 'newest' })}>Todos os NFTs</button>
               <button type="button" className={search.sort === 'newest' && search.availability !== 'all' ? 'whitespace-nowrap border-b-2 border-primary pb-2 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-2 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'newest' })}>Novos lançamentos</button>
               <button type="button" className={search.sort === 'price-desc' ? 'whitespace-nowrap border-b-2 border-primary pb-2 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-2 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'price-desc' })}>Em alta</button>
             </div>
-            <div className="w-56 shrink-0">
+            <div className="w-full sm:w-56 sm:shrink-0">
               <SortSelect value={search.sort} onChange={(sort) => updateFilters({ sort })} />
             </div>
           </div>
