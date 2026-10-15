@@ -37,7 +37,6 @@ import { NFTGrid } from '@/components/nft/nft-grid'
 
 import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
 
-import { Badge } from '@/components/ui/badge'
 
 import { Button } from '@/components/ui/button'
 
@@ -63,7 +62,7 @@ type CatalogSearch = PriceRange & {
 
 }
 
-const pageSize = 6
+const pageSize = 9
 
 function HomePage() {
 
@@ -146,6 +145,7 @@ function HomePage() {
   }
 
   const heroNft = featuredQuery.data?.items[0]
+  const promotionalNft = featuredQuery.data?.items[1] ?? heroNft
 
   return (
 
@@ -207,7 +207,7 @@ function HomePage() {
             </div>
           </div>
 
-          <aside aria-label="Filtros do catálogo" className="lg:sticky lg:top-20 lg:col-start-1 lg:row-start-1 lg:row-span-2">
+          <aside aria-label="Filtros do catálogo" className="min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2">
 
             <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group bg-[#281914] p-4 lg:p-5">
 
@@ -226,6 +226,20 @@ function HomePage() {
               </div>
 
             </details>
+
+            <section aria-labelledby="featured-heading" className="mx-auto mt-6 w-full max-w-[310px] bg-[#281914] bg-[radial-gradient(ellipse_at_top_right,rgba(179,148,99,0.16),transparent_65%)] pt-6">
+              <h2 id="featured-heading" className="px-5 text-2xl font-bold uppercase leading-7 text-[#d28a4c]">NFT em destaque</h2>
+              <p className="mb-2 mt-3 text-center text-2xl font-bold uppercase leading-7 text-[#f5f1eb]">Oferta limitada</p>
+              {featuredQuery.isLoading ? <Skeleton className="aspect-[310/366] w-full rounded-3xl" /> : null}
+              {featuredQuery.isError ? (
+                <div className="space-y-3 p-5 text-sm text-[#b39463]">
+                  <p role="alert">Não foi possível carregar o destaque.</p>
+                  <Button type="button" variant="outline" className="w-full rounded-sm" onClick={() => void featuredQuery.refetch()}>Tentar novamente</Button>
+                </div>
+              ) : null}
+              {featuredQuery.isSuccess && !promotionalNft ? <p className="p-5 text-sm text-[#b39463]">Nenhum NFT em destaque disponível.</p> : null}
+              {promotionalNft ? <FeaturedNftCard nft={promotionalNft} scenario={search.scenario} /> : null}
+            </section>
 
           </aside>
 
@@ -262,32 +276,6 @@ function HomePage() {
             ) : null}
 
           </div>
-
-      </section>
-
-      <section aria-labelledby="featured-heading" className="space-y-6">
-
-        <SectionHeading eyebrow="Curadoria" title="NFTs em destaque" id="featured-heading" />
-
-        {featuredQuery.isLoading ? <LoadingSkeleton count={3} /> : null}
-
-        {featuredQuery.isError ? (
-
-          <StateCard title="Nao foi possivel carregar os destaques" description={featuredQuery.error.message} action={<Button type="button" onClick={() => void featuredQuery.refetch()}><RotateCcw aria-hidden="true" />Tentar novamente</Button>} />
-
-        ) : null}
-
-        {featuredQuery.isSuccess && featuredQuery.data.items.length === 0 ? <StateCard title="Nenhum NFT em destaque" description="Volte mais tarde para ver a selecao." /> : null}
-
-        {featuredQuery.isSuccess && featuredQuery.data.items.length > 0 ? (
-
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-
-            {featuredQuery.data.items.map((nft) => <FeaturedNftCard key={nft.id} nft={nft} scenario={search.scenario} />)}
-
-          </div>
-
-        ) : null}
 
       </section>
 
@@ -376,33 +364,21 @@ function SectionHeading({ eyebrow, title, id }: { eyebrow: string; title: string
 }
 
 function FeaturedNftCard({ nft, scenario }: { nft: Nft; scenario: MockScenario }) {
-
   return (
-
-    <Card className="overflow-hidden rounded-sm border-border bg-card p-0 transition-transform duration-300 hover:-translate-y-1">
-
-      <Link to="/nft/$nftId" params={{ nftId: nft.id }} search={{ scenario }} className="block rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`Ver detalhes de ${nft.name}`}>
-
-        <div className="aspect-square overflow-hidden bg-muted">
-
-          {nft.images[0] ? <img src={nft.images[0].src} alt={nft.images[0].alt} className="size-full object-cover transition duration-500 hover:scale-[1.03]" /> : <span className="grid size-full place-items-center text-muted-foreground">Imagem indisponível</span>}
-
-        </div>
-
-        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
-
-          <div className="min-w-0"><h3 className="truncate font-semibold">{nft.name}</h3><p className="mt-1 font-bold text-primary">{nft.priceEth} ETH</p></div>
-
-          <Badge variant={nft.available ? 'default' : 'secondary'}>{nft.available ? 'Disponivel' : 'Vendido'}</Badge>
-
-        </CardContent>
-
-      </Link>
-
-    </Card>
-
+    <Link
+      to="/nft/$nftId"
+      params={{ nftId: nft.id }}
+      search={{ scenario }}
+      aria-label={`Explorar NFT em destaque: ${nft.name}`}
+      className="block aspect-[310/366] overflow-hidden rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+    >
+      {nft.images[0] ? (
+        <img src={nft.images[0].src} alt={nft.images[0].alt} loading="lazy" className="size-full object-cover" />
+      ) : (
+        <span className="grid size-full place-items-center p-5 text-center text-sm text-[#b39463]">Imagem indisponível</span>
+      )}
+    </Link>
   )
-
 }
 
 function EditorialCard({ nft, scenario, title, description, reverse = false }: { nft: Nft; scenario: MockScenario; title: string; description: string; reverse?: boolean }) {
