@@ -1,0 +1,90 @@
+.account-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  min-width: 0;
+}
+
+.account-menu {
+  min-width: 0;
+  align-self: start;
+  background: #281914;
+  color: #d28a4c;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+}
+
+.account-menu-title {
+  padding: 12px 10px 6px;
+  color: #f5f1eb;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 27px;
+}
+
+.account-menu-items {
+  display: flex;
+  overflow-x: auto;
+}
+
+.account-menu .account-menu-item {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: start;
+  gap: 12px;
+  min-height: 45px;
+  height: auto;
+  padding: 10px 16px 10px 10px;
+  border: 0;
+  border-left: 6px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: #d28a4c;
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 25px;
+  white-space: nowrap;
+}
+
+.account-menu .account-menu-item svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: #b39463;
+  stroke-width: 1.5;
+}
+
+.account-menu-item[aria-current="page"] {
+  border-left-color: #d28a4c;
+}
+
+.account-menu-item[aria-current="page"] svg {
+  color: #d28a4c;
+}
+
+.account-menu a:hover, .account-menu button:hover {
+  color: #f5f1eb;
+}
+
+.account-menu a:focus-visible, .account-menu button:focus-visible {
+  outline: 2px solid #d28a4c;
+  outline-offset: -2px;
+}
+
+.account-menu .account-menu-logout {
+  border-top: 1px solid #422d1e;
+  font-family: inherit;
+  font-weight: 700;
+}
+
+@media (min-width: 1024px) {
+  .account-layout {
+    grid-template-columns: 310px minmax(0, 1fr);
+    gap: 28px;
+  }
+
+  .account-menu-items {
+    display: grid;
+    overflow: visible;
+  }
+}

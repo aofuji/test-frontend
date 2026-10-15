@@ -16,8 +16,7 @@
   line-height: 1.5;
 }
 
-.wallets-page > div { grid-template-columns: minmax(0, 1fr); min-width: 0; }
-.wallets-page aside, .wallets-page .wallets-content { min-width: 0; }
+.wallets-page .wallets-content { min-width: 0; }
 
 .wallets-page .wallets-heading { display: flex; align-items: start; justify-content: space-between; gap: 12px; margin-bottom: 31px; }
 .wallets-page .wallets-heading > div { min-width: 0; }
@@ -64,13 +63,6 @@
 
 @media (min-width: 1024px) {
   .wallets-page { margin-top: -4px; }
-  .wallets-page > div { grid-template-columns: 310px minmax(0, 1fr); gap: 28px; }
-  .wallets-page aside { position: static; padding: 0; border: 0; border-radius: 0; background: #281914; }
-  .wallets-page aside > p { padding: 12px 10px 6px; color: var(--foreground); font-size: 18px; font-weight: 700; letter-spacing: normal; text-transform: none; }
-  .wallets-page aside > nav { gap: 0; }
-  .wallets-page aside > nav > a, .wallets-page aside > nav > span, .wallets-page aside > nav > button { display: flex; align-items: center; min-height: 45px; height: auto; padding: 10px 16px; border-radius: 0; color: var(--primary); font-size: 16px; font-weight: 400; }
-  .wallets-page aside > nav > a[href="/wallets"] { border-left: 6px solid var(--primary); padding-left: 10px; background: transparent; }
-  .wallets-page aside > nav > button { border-top: 1px solid var(--border); font-weight: 700; }
 }
 
 @media (min-width: 1280px) {
