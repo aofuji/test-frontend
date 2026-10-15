@@ -39,7 +39,6 @@ import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
 import { Badge } from '@/components/ui/badge'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -251,11 +250,6 @@ function HomePage() {
         <div className="grid items-start gap-8 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]">
 
           <aside aria-label="Filtros do catálogo" className="lg:sticky lg:top-20">
-
-            <label className="mb-4 grid gap-2 text-xs font-semibold tracking-wide text-foreground">
-              Buscar NFTs
-              <Input aria-label="Buscar por nome" value={search.q ?? ''} onChange={(event) => updateFilters({ q: event.currentTarget.value || undefined })} placeholder="Aurora, Neon..." className="h-10 rounded-sm border-primary/25 bg-card" />
-            </label>
 
             <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group rounded-sm border border-border/80 bg-card/80 p-4 lg:p-5">
 

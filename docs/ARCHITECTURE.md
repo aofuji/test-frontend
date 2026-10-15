@@ -6,6 +6,16 @@ O [enunciado oficial](desafio-frontend.md) é a fonte dos requisitos. O [checkli
 
 Os mocks persistem sessão, perfil, favoritos, NFTs alterados, carrinho, carteiras e pedidos no `localStorage`, separados por usuário quando privados. A camada MSW é a autoridade para preços, totais, cotações, estados de pagamento e idempotência; os componentes exibem a resposta e invalidam as consultas relevantes. A conexão REST é simulada; não há blockchain nem gateway real. O Figma não está disponível no projeto, portanto diferenças visuais em relação aos frames oficiais não puderam ser avaliadas.
 
+## Busca de NFTs pelo header
+
+A entrada de busca fica na lupa do header, em `src/routes/__root.tsx`. O campo acima dos filtros foi removido do catálogo para seguir o Figma. Ao abrir a busca, o header preenche o campo com o parâmetro `q` atual e dá foco ao input. O texto digitado fica em um estado local temporário; digitar não altera a consulta nem dispara uma pesquisa a cada tecla.
+
+Ao pressionar Enter ou acionar o botão de busca, o header navega para `/`, atualiza `q` com o texto sem espaços nas extremidades e reinicia `page` em `1`. Uma busca vazia remove `q`. A navegação combina os valores padrão do catálogo com os parâmetros atuais, preservando categoria, rede, disponibilidade, ordenação e cenário. Depois, fecha o campo e rola até `#catalogo`. Esc dentro da busca ou o botão X fecham o campo sem aplicar o rascunho e devolvem o foco à lupa; o formulário se adapta à largura disponível no mobile.
+
+A URL continua sendo a fonte da busca aplicada. Em `src/routes/index.tsx`, a validação da rota lê `q`, e o catálogo o repassa como `search` para o hook existente `useNfts`. Esse hook usa os parâmetros na chave de cache do TanStack Query e chama `getNfts`, que consulta `GET /api/nfts`. Assim, o header apenas controla a entrada e a navegação: a consulta, os filtros e os estados de carregamento, erro e vazio continuam no fluxo existente, sem outro mecanismo de pesquisa ou alterações na API e no MSW.
+
+A verificação no navegador cobriu foco automático, envio por Enter, preservação dos filtros e da ordenação na URL, reinício da paginação, navegação para o catálogo, fechamento por Esc/X, retorno de foco, uso no mobile e pesquisa iniciada a partir do carrinho. TypeScript e lint passaram após a alteração.
+
 ## Perfil e favoritos
 
 `GET/PATCH /api/profile` e `POST /api/profile/password` exigem sessão. A edição inclui nome, e-mail, bio, categorias e avatar PNG/JPEG/WebP de até 256 KB convertido em data URL. MSW valida os dados, impede e-mail duplicado e persiste a alteração; a mutation TanStack Query atualiza perfil e sessão. A troca de senha exige a senha atual e grava somente o hash usado pelo mock, nunca o texto original. Esse hash não é criptograficamente seguro e o `localStorage` não oferece proteção de servidor: são apenas mecanismos da simulação, inadequados para contas reais.

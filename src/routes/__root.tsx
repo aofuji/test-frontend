@@ -3,6 +3,7 @@ import {
   Outlet,
   createRootRouteWithContext,
   useNavigate,
+  useSearch,
 } from "@tanstack/react-router";
 import {
   Search,
@@ -10,7 +11,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebookF } from "react-icons/fa";
 import "@/components/auth/login-dialog.css";
@@ -19,6 +20,7 @@ import { useSession } from "@/api/hooks/useAuth";
 import { useCart } from "@/api/hooks/useCart";
 import { LoginForm, RegisterForm } from "@/components/auth/auth-forms";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { RouterContext } from "@/router";
 import { useRealtime } from "@/realtime/useRealtime";
 import "../App.css";
@@ -29,6 +31,31 @@ function RootLayout() {
   const cartQuery = useCart();
   useRealtime(sessionQuery.data?.user.id ?? null);
   const navigate = useNavigate();
+  const search = useSearch({ strict: false });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchDraft, setSearchDraft] = useState("");
+  const searchTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  function closeSearch() {
+    setSearchOpen(false);
+    searchTriggerRef.current?.focus({ preventScroll: true });
+  }
+
+  async function submitSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await navigate({
+      to: "/",
+      search: (previous) => ({ ...defaultCatalogSearch, ...previous, q: searchDraft.trim() || undefined, page: 1 }),
+      hash: "catalogo",
+    });
+    closeSearch();
+    document.getElementById("catalogo")?.scrollIntoView({ block: "start" });
+  }
+
+  useEffect(() => {
+    if (searchOpen) searchInputRef.current?.focus();
+  }, [searchOpen]);
   const [authModal, setAuthModal] = useState<AuthModalMode | null>(null);
   const authTriggerRef = useRef<HTMLButtonElement | null>(null);
   const cartCount = cartQuery.data?.items.reduce((total, item) => total + item.quantity, 0) ?? 0;
@@ -81,11 +108,17 @@ function RootLayout() {
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <button
               type="button"
+              ref={searchTriggerRef}
               aria-label="Pesquisar no mercado"
+              aria-expanded={searchOpen}
+              aria-controls="catalog-search"
               className="rounded-sm p-2 text-[#d8c9c0] transition hover:text-primary focus-visible:ring-2 focus-visible:ring-primary"
               onClick={() => {
-                void navigate({ to: "/", search: defaultCatalogSearch, hash: "catalogo" });
-                window.setTimeout(() => document.querySelector<HTMLInputElement>('[aria-label="Buscar por nome"]')?.focus(), 100);
+                if (searchOpen) closeSearch();
+                else {
+                  setSearchDraft(search.q ?? "");
+                  setSearchOpen(true);
+                }
               }}
             >
               <Search aria-hidden="true" className="size-4" />
@@ -105,6 +138,41 @@ function RootLayout() {
             )}
           </div>
         </div>
+        {searchOpen ? (
+          <form
+            id="catalog-search"
+            role="search"
+            aria-label="Busca de NFTs"
+            onSubmit={(event) => void submitSearch(event)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                event.preventDefault();
+                closeSearch();
+              }
+            }}
+            className="border-t border-[#3b2922] px-4 py-3 sm:px-6 lg:px-8"
+          >
+            <div className="mx-auto flex w-full max-w-xl items-center gap-2">
+              <label htmlFor="catalog-search-input" className="sr-only">Buscar NFTs pelo nome</label>
+              <Input
+                ref={searchInputRef}
+                id="catalog-search-input"
+                type="search"
+                enterKeyHint="search"
+                value={searchDraft}
+                onChange={(event) => setSearchDraft(event.currentTarget.value)}
+                placeholder="Buscar NFTs pelo nome"
+                className="h-10 min-w-0 flex-1 rounded-sm border-primary/25 bg-card"
+              />
+              <Button type="submit" size="icon" aria-label="Aplicar busca" className="size-10 rounded-sm">
+                <Search aria-hidden="true" className="size-4" />
+              </Button>
+              <Button type="button" variant="ghost" size="icon" aria-label="Fechar busca" onClick={closeSearch} className="size-10 rounded-sm">
+                <X aria-hidden="true" className="size-4" />
+              </Button>
+            </div>
+          </form>
+        ) : null}
       </header>
 
       <main className="mx-auto min-h-[calc(100svh-160px)] w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
