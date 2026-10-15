@@ -53,18 +53,18 @@ async function mockFailure(method, url, network = false, wait = 500) {
 }
 async function addAurora() {
   await page.goto(base+'/nft/aurora-001')
-  await page.getByRole('button',{name:'Adicionar',exact:true}).click()
+  await page.getByRole('button',{name:'COMPRAR',exact:true}).click()
   await page.getByRole('status').filter({hasText:'NFT adicionado'}).waitFor()
-  await page.getByRole('link',{name:'Ver carrinho'}).click()
+  await page.getByRole('link',{name:/^Carrinho(?:,| vazio)/}).click()
   await settled()
 }
 async function login(email,password) {
   await page.goto(base+'/login?redirect=%2Fcart')
-  await page.getByLabel('E-mail').fill(email)
+  await page.getByLabel('E-mail', { exact: true }).fill(email)
   await page.getByLabel('Senha',{exact:true}).fill(password)
-  await page.getByRole('button',{name:'Entrar',exact:true}).click()
+  await page.getByRole('main').getByRole('button',{name:'Entrar',exact:true}).click()
   await page.waitForURL(base+'/cart')
-  await page.getByRole('heading',{name:/Revise seus NFTs/}).waitFor()
+  await page.getByRole('heading',{name:/Carrinho de NFTs/}).waitFor()
 }
 try {
   await addAurora()
@@ -117,10 +117,10 @@ try {
   await page.reload(); await settled(); assert.equal(await quantity(),2)
   console.log('PASS refresh persistence; quote invalidation after quantity, coupon, add and remove')
   await login('ada@example.com','collector123'); await settled(); assert.equal(await quantity(),2)
-  await page.getByRole('button',{name:'Sair',exact:true}).click(); await page.waitForURL(base+'/')
+  await page.goto(base+'/profile'); await page.getByRole('button',{name:'Sair',exact:true}).click(); await page.waitForURL(base+'/')
   await page.goto(base+'/cart'); await page.getByRole('heading',{name:'Carrinho vazio'}).waitFor()
   await login('bruno@example.com','vault1234'); await page.getByRole('heading',{name:'Carrinho vazio'}).waitFor()
-  await page.getByRole('button',{name:'Sair',exact:true}).click(); await page.waitForURL(base+'/')
+  await page.goto(base+'/profile'); await page.getByRole('button',{name:'Sair',exact:true}).click(); await page.waitForURL(base+'/')
   await addAurora()
   await login('ada@example.com','collector123'); await settled(); assert.equal(await quantity(),3)
   assert.equal((await api('/cart')).data.cart.items.length,1)

@@ -2,21 +2,21 @@
 
 Marketplace demonstrativo em React, TypeScript e Vite. Catálogo, conta, carrinho, carteiras, checkout e pedidos usam APIs REST simuladas por MSW no próprio navegador. Não há blockchain ou pagamento real. O [enunciado oficial](docs/desafio-frontend.md), o [checklist de progresso](docs/implementation-checklist.md) e a [arquitetura](docs/ARCHITECTURE.md) ficam em `docs`.
 
-A Home traz NFTs em destaque da mesma API do catálogo. O detalhe tem galeria com imagem principal, miniaturas e seleção por teclado. As ilustrações SVG são provisórias porque o Figma não está disponível neste repositório.
+A Home traz NFTs em destaque da mesma API do catálogo. O detalhe tem galeria com imagem principal, miniaturas e seleção por teclado. As referências visuais do Figma estão em `design-reference/`.
 
 ## Execução local
 
-Requer Node.js compatível com Vite 8 e npm. Em um checkout limpo:
+Requer **Node.js 22.19+** (ou Node.js 24+) e npm. O mínimo considera Vite e Lighthouse. Em um checkout limpo:
 
 ```bash
 npm ci
-VITE_ENABLE_MOCKS=true npm run dev
+npm run dev
 ```
 
-Abra a URL exibida pelo Vite. `VITE_ENABLE_MOCKS=true` é necessário para iniciar o worker MSW. Para conferir o build de demonstração com mocks:
+Abra a URL exibida pelo Vite. O `.env` versionado contém `VITE_ENABLE_MOCKS=true`: desenvolvimento e build de demonstração usam o worker MSW existente sem configuração manual. O arquivo não contém segredos. Para conferir o build:
 
 ```bash
-VITE_ENABLE_MOCKS=true npm run build
+npm run build
 npm run preview
 ```
 
@@ -26,7 +26,7 @@ npm run preview
 | --- | --- | --- |
 | `VITE_ENABLE_MOCKS` | `true` | Ativa os handlers MSW no desenvolvimento e no build de demonstração. |
 
-Não há chaves externas nem serviços obrigatórios. Sem `VITE_ENABLE_MOCKS=true`, a aplicação não inicia a camada REST simulada.
+Não há chaves externas nem serviços obrigatórios. Uma variável de ambiente ou `.env.local` pode sobrescrever o padrão. `VITE_ENABLE_MOCKS=false` desativa a simulação, mas este projeto não fornece um backend real. A variável é incorporada no build: mudar o ambiente apenas no `preview` não altera um `dist` já gerado.
 
 As contas fictícias são `ada@example.com` / `collector123` e `bruno@example.com` / `vault1234`. O cadastro também aceita novos usuários. O estado simulado é persistido no `localStorage` deste navegador; para voltar às fixtures iniciais, execute no console da aplicação:
 
@@ -88,22 +88,66 @@ Os [contratos REST, política de idempotência e limitações](docs/etapa-6-chec
 
 ## Verificação
 
+| Comando | Resultado |
+| --- | --- |
+| `npm run dev` | Inicia Vite com MSW, conforme o `.env`. |
+| `npm run build` | Verifica TypeScript e gera `dist/` com os mocks de demonstração. |
+| `npm run preview` | Serve o `dist/` existente; execute o build antes. |
+| `npm run typecheck` | Executa `tsc -b --pretty false`. |
+| `npm run lint` | Executa o ESLint existente. |
+| `npm run test` | Executa todas as suítes de API/estado e Playwright existentes. Inicia e encerra Vite com mocks automaticamente. |
+| `npm run lighthouse` | Gera o build, inicia um preview local temporário, audita a Home e encerra o servidor. |
+
+### Playwright
+
+O Playwright está declarado nas dependências de desenvolvimento; os scripts de navegador existentes foram reutilizados, sem criar outra configuração ou suíte. Instale o Chromium uma vez após `npm ci`:
+
 ```bash
-npx tsc -b --pretty false
+npx playwright install chromium
+npm run typecheck
 npm run lint
-npm run build
-npm run test:cart
-npm run test:checkout
-npm run test:profile
-npm run test:profile:browser
-npm run test:cart:browser
-npm run test:checkout:browser
-npm run test:realtime:browser
-git diff --check
+npm run test
 ```
 
-Os comandos de navegador requerem um Chromium e uma instalação externa do Playwright. Quando necessário, informe `PLAYWRIGHT_MODULE`, `CHROME_PATH` e a URL do servidor (`PROFILE_TEST_URL`, `CHECKOUT_TEST_URL` ou `REALTIME_TEST_URL`).
+Em Linux, o navegador também precisa das bibliotecas do sistema. Quando necessário, use `npx playwright install --with-deps chromium` em uma máquina onde você tenha permissão para instalar esses pacotes. Consulte a [instalação oficial de navegadores](https://playwright.dev/docs/browsers).
 
-Com Vite iniciado com mocks, `npm run test:profile:browser` testa perfil, favoritos, destaques, galeria, URL, paginação, histórico, teclado, foco, reflow e movimento reduzido. `npm run test:cart:browser` testa o carrinho e requer o servidor de desenvolvimento, pois importa o `queryClient` por `/src`. As suítes de checkout e tempo real também funcionam no preview com `CHECKOUT_TEST_URL` e `REALTIME_TEST_URL`; a suíte nova aceita `PROFILE_TEST_URL`. Playwright não está no `package.json` atual: os scripts usam uma instalação acessível via `PLAYWRIGHT_MODULE`, o Chrome indicado por `CHROME_PATH` e a URL opcional de cada suíte. A ausência dessa dependência declarada e da suíte E2E completa é uma pendência do [checklist](docs/implementation-checklist.md).
+O executor descobre `tests/*.test.mjs` e `tests/*-browser.mjs`, roda as suítes sequencialmente e retorna código diferente de zero se alguma falhar. Não omite as suítes antigas. Cada processo recebe a URL do servidor temporário, cuja porta é alocada automaticamente. Para selecionar uma suíte:
 
-Regressão visual ampla, auditoria Lighthouse e deploy continuam pendentes no desafio completo. O arquivo Figma não está disponível neste repositório, portanto fidelidade aos frames oficiais não foi avaliada. O preview local com mocks passou cinco execuções consecutivas da suíte Socket.IO após a correção da reconexão; a publicação real ainda não foi verificada.
+```bash
+npm run test -- auth-mobile
+npm run test -- catalog-pagination
+```
+
+Na verificação desta configuração, **10 de 15 suítes passaram** (incluindo os 17 testes de API/estado). `npm run test` retorna falha nas cinco suítes antigas abaixo, que ainda usam seletores anteriores aos ajustes visuais:
+
+- `cart-browser.mjs`: procura o botão `Adicionar`, atualmente `COMPRAR`.
+- `cart-mobile-browser.mjs`: espera o título desktop `Confirmar compra` visível no checkout mobile, que agora usa `Pagamento com carteira`.
+- `checkout-browser.mjs`, `profile-favorites-browser.mjs` e `realtime-browser.mjs`: procuram a navegação `Navegacao principal`, enquanto o nome acessível atual é `Navegação principal`.
+
+Esses testes foram executados e mantidos sem alterações nesta tarefa de configuração. As falhas precisam ser tratadas antes de considerar a suíte completa aprovada; corrigir esses primeiros seletores pode revelar outras expectativas antigas.
+
+Os comandos específicos `test:cart`, `test:checkout`, `test:profile` e `test:*:browser` continuam disponíveis. Os três primeiros dispensam navegador e servidor. Os comandos `test:*:browser` executados diretamente requerem um Vite já iniciado com mocks; a suíte de carrinho importa módulos por `/src` e precisa do servidor de desenvolvimento.
+
+Alternativas opcionais:
+
+- `CHROME_PATH`: caminho de um Chrome/Chromium já instalado, em vez do Chromium do Playwright. Exemplo em Linux: `CHROME_PATH=/usr/bin/google-chrome npm run test`.
+- `PLAYWRIGHT_MODULE`: caminho de uma instalação externa, mantido por compatibilidade. Não é necessário após `npm ci`.
+- `TEST_BASE_URL`: faz `npm run test` usar um servidor de desenvolvimento existente com mocks, sem iniciar outro. As suítes individuais continuam aceitando suas variáveis `AUTH_TEST_URL`, `CART_TEST_URL`, `CATALOG_TEST_URL`, `CHECKOUT_TEST_URL`, `HOME_TEST_URL`, `NFT_TEST_URL`, `PROFILE_TEST_URL`, `REALTIME_TEST_URL` e `WALLETS_TEST_URL`.
+
+### Lighthouse
+
+É necessário Google Chrome/Chromium instalado e executável no sistema. O Lighthouse CLI está nas dependências de desenvolvimento e sua versão fica fixada pelo `package-lock.json`. Consulte a [documentação oficial do CLI](https://github.com/GoogleChrome/lighthouse#using-the-node-cli).
+
+```bash
+npm run lighthouse
+```
+
+Se o navegador não for detectado automaticamente, informe seu caminho (exemplo em Linux):
+
+```bash
+CHROME_PATH=/usr/bin/google-chrome npm run lighthouse
+```
+
+A auditoria usa o **build de produção**, com MSW ativado pelo `.env`, e um preview em `http://127.0.0.1:<porta>/?scenario=normal`, em porta livre automaticamente. O perfil é mobile, headless, com throttling simulado e armazenamento limpo pelo Lighthouse; não usa o estado pessoal do navegador. São gerados `reports/lighthouse/home.report.html` e `reports/lighthouse/home.report.json`, sobrescritos na próxima execução e ignorados pelo Git. O comando falha em erros de execução; não impõe uma nota mínima. As notas podem variar conforme hardware, Chrome e carga da máquina. Para comparar resultados, use `npm ci`, a mesma versão do Chrome e o mesmo ambiente sem outros testes de navegador em paralelo.
+
+Essa auditoria cobre a Home pública. Não representa uma auditoria de todas as rotas autenticadas nem valida publicação/deploy ou equivalência visual completa ao Figma.

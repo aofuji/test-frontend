@@ -8,7 +8,7 @@ const errors=[]
 page.on('pageerror',error=>errors.push(error.message))
 async function reset(){
   await page.goto(base+'/')
-  await page.getByRole('navigation',{name:'Navegacao principal'}).waitFor()
+  await page.getByRole('navigation',{name:'Navegação principal'}).waitFor()
   const resetResponse=await page.evaluate(async()=>{const r=await fetch('/api/__mock/reset-auth',{method:'POST'}); return {status:r.status,body:await r.text(),attempt:localStorage.getItem('nft-marketplace.checkout-attempt.v1')}})
   assert.equal(resetResponse.status,200,JSON.stringify(resetResponse))
   assert.equal(JSON.parse(resetResponse.body).ok,true)
@@ -17,17 +17,19 @@ async function reset(){
 }
 async function addAndLogin(){
   await page.goto(base+'/nft/aurora-001')
-  await page.getByRole('button',{name:'Adicionar',exact:true}).click()
+  await page.getByRole('button',{name:'COMPRAR',exact:true}).click()
   await page.getByRole('status').filter({hasText:'NFT adicionado'}).waitFor()
   await page.goto(base+'/login?redirect=%2Fcheckout')
-  await page.getByLabel('E-mail').fill('ada@example.com')
+  await page.getByLabel('E-mail', { exact: true }).fill('ada@example.com')
   await page.getByLabel('Senha',{exact:true}).fill('collector123')
-  await page.getByRole('button',{name:'Entrar',exact:true}).click()
+  await page.getByRole('main').getByRole('button',{name:'Entrar',exact:true}).click()
   await page.waitForURL(base+'/checkout')
   await page.getByRole('heading',{name:'Confirmar compra'}).waitFor()
 }
 async function scenario(name){
-  await page.getByRole('combobox').last().click()
+  const controls = page.locator('.checkout-development')
+  if (!await controls.evaluate(element => element.open)) await controls.locator('summary').click()
+  await page.getByRole('combobox', {name:'Cenario do pedido',exact:true}).click()
   await page.getByRole('option',{name}).click()
 }
 async function quote(){
@@ -86,9 +88,9 @@ try {
   await page.waitForURL(/\/login\?redirect=/)
   const expiredAttempt=await page.evaluate(()=>JSON.parse(localStorage.getItem('nft-marketplace.checkout-attempt.v1')))
   assert.ok(expiredAttempt.key)
-  await page.getByLabel('E-mail').fill('ada@example.com')
+  await page.getByLabel('E-mail', { exact: true }).fill('ada@example.com')
   await page.getByLabel('Senha',{exact:true}).fill('collector123')
-  await page.getByRole('button',{name:'Entrar',exact:true}).click()
+  await page.getByRole('main').getByRole('button',{name:'Entrar',exact:true}).click()
   await page.waitForURL(base+'/checkout')
   await page.getByRole('heading',{name:'Confirmar compra'}).waitFor()
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('nft-marketplace.checkout-attempt.v1')).key),expiredAttempt.key)
@@ -104,7 +106,7 @@ try {
   await page.getByText('Confirmado',{exact:true}).first().waitFor({timeout:10000})
   assert.equal((await cart()).items.length,0)
   await page.goto(base+'/nft/neon-204')
-  await page.getByRole('button',{name:'Adicionar',exact:true}).click()
+  await page.getByRole('button',{name:'COMPRAR',exact:true}).click()
   await page.getByRole('status').filter({hasText:'NFT adicionado'}).waitFor()
   await page.goto(base+'/checkout')
   await page.getByRole('heading',{name:'Confirmar compra'}).waitFor()

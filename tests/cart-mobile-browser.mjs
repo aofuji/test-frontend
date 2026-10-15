@@ -84,7 +84,7 @@ try {
   await page.getByLabel('Senha', { exact: true }).fill('collector123')
   await page.getByRole('main').getByRole('button', { name: 'Entrar', exact: true }).click()
   await page.waitForURL((url) => url.pathname === '/checkout')
-  await page.getByRole('heading', { name: 'Confirmar compra', exact: true }).waitFor()
+  await page.getByRole('heading', { name: 'Pagamento com carteira', exact: true }).waitFor()
   await page.goto(`${base}/cart`)
   await page.getByRole('button', { name: 'Continuar e finalizar', exact: true }).click()
   await page.waitForURL((url) => url.pathname === '/checkout')

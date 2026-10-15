@@ -34,7 +34,7 @@ import "@/components/home/home-mobile.css";
 function RootLayout() {
   const sessionQuery = useSession();
   const cartQuery = useCart();
-  useRealtime(sessionQuery.data?.user.id ?? null);
+  const realtimeNotice = useRealtime(sessionQuery.data?.user.id ?? null);
   const navigate = useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname }).replace(/\/+$/, "") || "/";
   const isHome = pathname === "/";
@@ -196,6 +196,7 @@ function RootLayout() {
         ) : null}
       </header>
 
+      <p role="status" aria-live="polite" className="sr-only">{realtimeNotice}</p>
       <main className="mx-auto min-h-[calc(100svh-160px)] w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         <Outlet />
       </main>

@@ -77,7 +77,7 @@ export function Footer() {
         {/* Benefícios e newsletter */}
         <section
           aria-label="Benefícios da plataforma"
-          className="grid gap-8 bg-[#2b1d19] px-6 py-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:px-8"
+          className="grid grid-cols-1 gap-8 bg-[#2b1d19] px-6 py-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-0 lg:px-8"
         >
           {benefits.map(({ letter, title, description }) => (
             <div
