@@ -6,6 +6,12 @@ O [enunciado oficial](desafio-frontend.md) é a fonte dos requisitos. O [checkli
 
 Os mocks persistem sessão, perfil, favoritos, NFTs alterados, carrinho, carteiras e pedidos no `localStorage`, separados por usuário quando privados. A camada MSW é a autoridade para preços, totais, cotações, estados de pagamento e idempotência; os componentes exibem a resposta e invalidam as consultas relevantes. A conexão REST é simulada; não há blockchain nem gateway real. As comparações visuais usam as referências locais em `design-reference/figma-layout.png`, `design-reference/Desktop/` e `design-reference/Mobile/`; os exports estáticos não comprovam interações do protótipo original.
 
+## Autenticação social pendente
+
+Os botões **Continuar com Google** e **Continuar com Facebook**, exibidos nos modais de login e cadastro, reproduzem apenas o visual do Figma. Permanecem desabilitados: não iniciam autenticação, não criam sessão e não redirecionam para os provedores.
+
+A autenticação social ainda não foi implementada. Não há integração OAuth nem suporte correspondente na API/MSW. O login por e-mail e senha e o cadastro existentes continuam sendo os fluxos funcionais. Para habilitar os botões, será necessário implementar o suporte aos provedores e sua integração com a sessão da aplicação.
+
 ## Busca de NFTs pelo header
 
 A entrada de busca fica na lupa do header, em `src/routes/__root.tsx`. O campo acima dos filtros foi removido do catálogo para seguir o Figma. Ao abrir a busca, o header preenche o campo com o parâmetro `q` atual e dá foco ao input. O texto digitado fica em um estado local temporário; digitar não altera a consulta nem dispara uma pesquisa a cada tecla.
