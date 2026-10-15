@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from 'react'
+import { Eye, EyeOff } from 'lucide-react'
 
 import { useLogin, useRegister } from '@/api/hooks/useAuth'
 import { ApiError } from '@/api/http/errors'
@@ -21,7 +22,9 @@ export function LoginForm({
   onSwitch,
   switchAction,
   showSwitch = true,
-}: AuthFormOptions) {
+  showPasswordToggle = false,
+}: AuthFormOptions & { showPasswordToggle?: boolean }) {
+  const [passwordVisible, setPasswordVisible] = useState(false)
   const loginMutation = useLogin()
   const [form, setForm] = useState<LoginRequest>({ email: '', password: '' })
   const [clientErrors, setClientErrors] = useState<Partial<LoginRequest>>({})
@@ -58,19 +61,34 @@ export function LoginForm({
         />
         <FieldError message={fieldErrors.email} />
       </label>
-      <label className="grid gap-2 text-sm font-medium" htmlFor="auth-login-password">
-        <span className="sr-only">Senha</span>
-        <Input
-          id="auth-login-password"
-          type="password"
-          autoComplete="current-password"
-          placeholder="************"
-          value={form.password}
-          aria-invalid={Boolean(fieldErrors.password)}
-          onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
-        />
+      <div className="grid gap-2 text-sm font-medium">
+        <label className="sr-only" htmlFor="auth-login-password">Senha</label>
+        <div className="relative">
+          <Input
+            id="auth-login-password"
+            type={passwordVisible ? 'text' : 'password'}
+            autoComplete="current-password"
+            placeholder="************"
+            className={showPasswordToggle ? 'pr-10' : undefined}
+            value={form.password}
+            aria-invalid={Boolean(fieldErrors.password)}
+            onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))}
+          />
+          {showPasswordToggle ? (
+            <button
+              type="button"
+              className="auth-password-toggle"
+              aria-label={passwordVisible ? 'Ocultar senha' : 'Mostrar senha'}
+              aria-pressed={passwordVisible}
+              aria-controls="auth-login-password"
+              onClick={() => setPasswordVisible((visible) => !visible)}
+            >
+              {passwordVisible ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}
+            </button>
+          ) : null}
+        </div>
         <FieldError message={fieldErrors.password} />
-      </label>
+      </div>
       <Button className="h-11 w-full rounded-sm font-bold" type="submit" disabled={loginMutation.isPending}>
         {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
       </Button>
@@ -90,16 +108,21 @@ export function RegisterForm({
   onSwitch,
   switchAction,
   showSwitch = true,
-}: AuthFormOptions) {
+  withPasswordConfirmation = false,
+}: AuthFormOptions & { withPasswordConfirmation?: boolean }) {
   const registerMutation = useRegister()
   const [form, setForm] = useState<RegisterRequest>({ name: '', email: '', password: '' })
-  const [clientErrors, setClientErrors] = useState<Partial<RegisterRequest>>({})
+  const [confirmation, setConfirmation] = useState('')
+  const [clientErrors, setClientErrors] = useState<Partial<RegisterRequest> & { confirmation?: string }>({})
   const apiError = registerMutation.error instanceof ApiError ? registerMutation.error : null
   const fieldErrors = { ...clientErrors, ...apiError?.fieldErrors }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    const nextErrors = validateRegisterForm(form)
+    const nextErrors: Partial<RegisterRequest> & { confirmation?: string } = validateRegisterForm(form)
+    if (withPasswordConfirmation && form.password !== confirmation) {
+      nextErrors.confirmation = 'As senhas devem ser iguais.'
+    }
     setClientErrors(nextErrors)
     if (Object.keys(nextErrors).length > 0) return
 
@@ -125,11 +148,30 @@ export function RegisterForm({
         <Input id="auth-register-email" type="email" autoComplete="email" placeholder="Digite seu e-mail" value={form.email} aria-invalid={Boolean(fieldErrors.email)} onChange={(event) => setForm((current) => ({ ...current, email: event.target.value }))} />
         <FieldError message={fieldErrors.email} />
       </label>
-      <label className="grid gap-2 text-sm font-medium" htmlFor="auth-register-password">
-        <span className="sr-only">Senha</span>
-        <Input id="auth-register-password" type="password" autoComplete="new-password" placeholder="Senha" value={form.password} aria-invalid={Boolean(fieldErrors.password)} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} />
-        <FieldError message={fieldErrors.password} />
-      </label>
+      {withPasswordConfirmation ? (
+        <>
+          <RegistrationPasswordField
+            id="auth-register-password"
+            label="Senha"
+            value={form.password}
+            error={fieldErrors.password}
+            onChange={(password) => setForm((current) => ({ ...current, password }))}
+          />
+          <RegistrationPasswordField
+            id="auth-register-confirmation"
+            label="Confirmar senha"
+            value={confirmation}
+            error={clientErrors.confirmation}
+            onChange={setConfirmation}
+          />
+        </>
+      ) : (
+        <label className="grid gap-2 text-sm font-medium" htmlFor="auth-register-password">
+          <span className="sr-only">Senha</span>
+          <Input id="auth-register-password" type="password" autoComplete="new-password" placeholder="Senha" value={form.password} aria-invalid={Boolean(fieldErrors.password)} onChange={(event) => setForm((current) => ({ ...current, password: event.target.value }))} />
+          <FieldError message={fieldErrors.password} />
+        </label>
+      )}
       <Button className="h-11 w-full rounded-sm font-bold" type="submit" disabled={registerMutation.isPending}>
         {registerMutation.isPending ? 'Criando conta...' : 'Criar conta'}
       </Button>
@@ -140,6 +182,45 @@ export function RegisterForm({
         </p>
       ) : null}
     </form>
+  )
+}
+
+function RegistrationPasswordField({ id, label, value, error, onChange }: {
+  id: string
+  label: string
+  value: string
+  error?: string
+  onChange: (value: string) => void
+}) {
+  const [visible, setVisible] = useState(false)
+
+  return (
+    <div className="grid gap-2 text-sm font-medium">
+      <label className="sr-only" htmlFor={id}>{label}</label>
+      <div className="relative">
+        <Input
+          id={id}
+          type={visible ? 'text' : 'password'}
+          autoComplete="new-password"
+          placeholder={label}
+          value={value}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${id}-error` : undefined}
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <button
+          type="button"
+          className="auth-password-toggle"
+          aria-label={`${visible ? 'Ocultar' : 'Mostrar'} ${label.toLowerCase()}`}
+          aria-pressed={visible}
+          aria-controls={id}
+          onClick={() => setVisible((current) => !current)}
+        >
+          {visible ? <Eye aria-hidden="true" /> : <EyeOff aria-hidden="true" />}
+        </button>
+      </div>
+      {error ? <p id={`${id}-error`} role="alert" className="text-sm text-destructive">{error}</p> : null}
+    </div>
   )
 }
 

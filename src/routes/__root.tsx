@@ -11,6 +11,9 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { FcGoogle } from "react-icons/fc";
+import { FaFacebookF } from "react-icons/fa";
+import "@/components/auth/login-dialog.css";
 
 import { useSession } from "@/api/hooks/useAuth";
 import { useCart } from "@/api/hooks/useCart";
@@ -125,7 +128,7 @@ function AuthDialog({ mode, onModeChange, onClose }: { mode: AuthModalMode; onMo
   }, []);
 
   return (
-    <div className="fixed inset-0 z-50 grid min-h-svh place-items-center overflow-y-auto bg-black/75 p-4 sm:p-8">
+    <div data-register-dialog={mode === "register" ? "true" : undefined} data-login-dialog={mode === "login" ? "true" : undefined} className="fixed inset-0 z-50 grid min-h-svh place-items-center overflow-y-auto bg-black/75 p-4 sm:p-8">
       <div role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" className="relative w-full max-w-[31.25rem] overflow-hidden rounded-sm border border-[#4b2b1e] bg-[#2b1d19] text-[#f3ebe5] shadow-2xl">
         <button ref={closeRef} type="button" aria-label="Fechar" onClick={onClose} className="absolute right-4 top-4 z-10 rounded-sm p-1 text-primary outline-none transition hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-primary"><X aria-hidden="true" className="size-5" /></button>
         <div className="px-8 pb-8 pt-9 sm:px-10">
@@ -138,11 +141,11 @@ function AuthDialog({ mode, onModeChange, onClose }: { mode: AuthModalMode; onMo
           <p className="mx-auto mb-6 max-w-sm text-center text-xs leading-5 text-[#c49c79]">
             {mode === "login" ? "Entre para gerenciar sua carteira, coleção e perfil de criador." : "Crie seu perfil de colecionador e conecte uma carteira quando quiser."}
           </p>
-          {mode === "login" ? <LoginForm showSwitch={false} onSuccess={onClose} /> : <RegisterForm showSwitch={false} onSuccess={onClose} />}
+          {mode === "login" ? <LoginForm showSwitch={false} showPasswordToggle onSuccess={onClose} /> : <RegisterForm showSwitch={false} withPasswordConfirmation onSuccess={onClose} />}
           <div className="my-5 flex items-center gap-3 text-xs text-[#c49c79]"><span className="h-px flex-1 bg-[#4b2b1e]" /><span>Ou continue com</span><span className="h-px flex-1 bg-[#4b2b1e]" /></div>
           <div className="grid gap-3">
-            <Button type="button" variant="outline" disabled aria-disabled="true" className="h-10 w-full justify-center rounded-sm border-[#4b2b1e] text-[#c49c79] disabled:opacity-100">Continuar com Google</Button>
-            <Button type="button" variant="outline" disabled aria-disabled="true" className="h-10 w-full justify-center rounded-sm border-[#4b2b1e] text-[#c49c79] disabled:opacity-100">Continuar com Facebook</Button>
+            <Button type="button" variant="outline" disabled aria-disabled="true" className="h-10 w-full justify-center rounded-sm border-[#4b2b1e] text-[#c49c79] disabled:opacity-100"><FcGoogle aria-hidden="true" className="size-5" />Continuar com Google</Button>
+            <Button type="button" variant="outline" disabled aria-disabled="true" className="h-10 w-full justify-center rounded-sm border-[#4b2b1e] text-[#c49c79] disabled:opacity-100"><FaFacebookF aria-hidden="true" className="size-5 text-[#4267a9]" />Continuar com Facebook</Button>
           </div>
         </div>
         <div className="h-2 bg-primary" aria-hidden="true" />

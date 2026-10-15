@@ -1,0 +1,159 @@
+/* Desktop / Login: 1440px frame, 500 × 600px dialog at x470, y160. */
+:is([data-login-dialog="true"], [data-register-dialog="true"]) {
+  align-items: start;
+  padding-top: clamp(24px, 11.111vw, 160px);
+  background: rgb(0 0 0 / 8%);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --primary: #d28a4c;
+  --primary-foreground: #190f0b;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) > [role="dialog"] {
+  display: flex;
+  flex-direction: column;
+  min-height: 600px;
+  max-width: 500px;
+  border: 0;
+  border-radius: 0;
+  background: #281914;
+  color: #f5f1eb;
+  box-shadow: none;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) [role="dialog"] > button {
+  top: 8px;
+  right: 8px;
+  color: #b39463;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) [role="dialog"] > div:first-of-type {
+  padding: 44px 0 0;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) [role="tablist"] {
+  margin-bottom: 36px;
+  gap: 4px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 28px;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) [role="tablist"] + h2 + p {
+  max-width: 400px;
+  margin-bottom: 24px;
+  padding-inline: 12px;
+  color: #f5f1eb;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) form {
+  display: grid;
+  gap: 12px;
+  width: min(340px, calc(100% - 48px));
+  margin-inline: auto;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) form > * {
+  margin-block: 0;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) input {
+  height: 40px;
+  padding-inline: 16px;
+  border: 1px solid #422d1e;
+  border-radius: 4px;
+  background: transparent;
+  color: #f5f1eb;
+  font-family: inherit;
+  font-size: 14px;
+  box-shadow: none;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) input::placeholder { color: #b39463; }
+:is([data-login-dialog="true"], [data-register-dialog="true"]) #auth-login-password { padding-right: 40px; }
+:is([data-login-dialog="true"], [data-register-dialog="true"]) input:focus-visible { border-color: #d28a4c; outline: 1px solid #d28a4c; }
+:is([data-login-dialog="true"], [data-register-dialog="true"]) input[aria-invalid="true"] { border-color: var(--destructive); }
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) .auth-password-toggle {
+  position: absolute;
+  inset: 0 0 0 auto;
+  display: grid;
+  width: 44px;
+  place-items: center;
+  color: #b39463;
+  cursor: pointer;
+}
+
+.auth-password-toggle svg { width: 20px; height: 20px; }
+.auth-password-toggle:focus-visible { outline: 2px solid #d28a4c; outline-offset: -3px; }
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) form > button[type="submit"] {
+  height: 45px;
+  margin-top: 40px;
+  border-radius: 4px;
+  font-family: inherit;
+  font-size: 16px;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) form + div {
+  margin: 26px 0 12px;
+  color: #f5f1eb;
+  font-size: 13px;
+  line-height: 16px;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) form + div > span:first-child,
+:is([data-login-dialog="true"], [data-register-dialog="true"]) form + div > span:last-child { background: #422d1e; }
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) form + div + div {
+  width: min(340px, calc(100% - 48px));
+  margin-inline: auto;
+  gap: 12px;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) form + div + div > button {
+  height: 40px;
+  gap: 12px;
+  border: 1px solid #422d1e;
+  border-radius: 4px;
+  background: transparent;
+  color: #b39463;
+  font-family: inherit;
+  font-size: 13px;
+  opacity: 1;
+}
+
+:is([data-login-dialog="true"], [data-register-dialog="true"]) [role="dialog"] > div:last-child {
+  height: 10px;
+  margin-top: auto;
+}
+
+@media (max-width: 539px) {
+  :is([data-login-dialog="true"], [data-register-dialog="true"]) [role="dialog"] > div:first-of-type { padding-top: 40px; }
+  :is([data-login-dialog="true"], [data-register-dialog="true"]) [role="tablist"] { font-size: 18px; }
+}
+
+/* Desktop / Cadastro: 500 × 656px, four fields with 12px gaps. */
+[data-register-dialog="true"] {
+  padding-top: clamp(24px, 10.9722vw, 158px);
+}
+
+[data-register-dialog="true"] > [role="dialog"] {
+  min-height: 656px;
+  border-radius: 6px;
+}
+
+[data-register-dialog="true"] input[type="password"],
+[data-register-dialog="true"] #auth-register-password,
+[data-register-dialog="true"] #auth-register-confirmation {
+  padding-right: 44px;
+}
+
+[data-register-dialog="true"] form > button[type="submit"] {
+  margin-top: 12px;
+}
+
+[data-register-dialog="true"] form + div + div {
+  gap: 16px;
+}
