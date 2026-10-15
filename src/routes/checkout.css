@@ -1,0 +1,101 @@
+/* Fourth desktop frame in figma-layout.png: collector fields and a 400px order column. */
+#root > div:has(> main .checkout-page) { background-color: #160f0b; }
+
+.checkout-page {
+  --primary: #d28a4c;
+  --primary-foreground: #190f0b;
+  --foreground: #f5f1eb;
+  --muted-foreground: #b39463;
+  --border: #422d1e;
+  --input: #422d1e;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-bottom: 88px;
+  color: var(--foreground);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.checkout-page .checkout-breadcrumb { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 28px; font-weight: 700; }
+.checkout-page a:hover { color: var(--primary); }
+.checkout-page .checkout-title { margin-bottom: 24px; font-size: 24px; font-weight: 700; }
+.checkout-page .checkout-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 32px; }
+.checkout-page .checkout-collector, .checkout-page .checkout-summary { min-width: 0; }
+.checkout-page h2 { margin-bottom: 12px; font-size: 18px; font-weight: 700; }
+.checkout-page .checkout-fields { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px 24px; }
+.checkout-page .checkout-fields > label { display: grid; min-width: 0; align-content: start; gap: 4px; }
+.checkout-page .checkout-fields input, .checkout-page .checkout-fields [data-slot="select-trigger"] { width: 100%; min-width: 0; height: 40px; border: 1px solid var(--border); border-radius: 3px; background: transparent; padding-inline: 12px; color: var(--muted-foreground); font-size: 14px; box-shadow: none; }
+.checkout-page .checkout-fields input[readonly] { color: var(--foreground); }
+.checkout-page .checkout-wallet-fields { margin-top: 28px; }
+.checkout-page .checkout-address { grid-column: 1 / -1; }
+.checkout-page .checkout-wallet-alert { margin-top: 12px; color: var(--muted-foreground); }
+.checkout-page .checkout-wallet-alert[role="alert"] { color: var(--destructive); }
+.checkout-page .checkout-manage-wallet { display: inline-block; margin-top: 16px; color: var(--primary); text-decoration: underline; text-underline-offset: 4px; }
+
+.checkout-page .checkout-development { margin-top: 32px; border-top: 1px solid var(--border); padding-top: 12px; color: var(--muted-foreground); font-size: 12px; }
+.checkout-page .checkout-development summary { cursor: pointer; }
+.checkout-page .checkout-development-content { display: grid; gap: 12px; margin-top: 16px; }
+.checkout-page .checkout-development-content h2 { margin: 0; font-size: 14px; }
+.checkout-page .checkout-development [data-slot="select-trigger"] { width: 100%; max-width: 320px; }
+
+.checkout-page .checkout-summary > h2 { margin-bottom: 4px; }
+.checkout-page .checkout-summary-columns { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border); font-size: 16px; }
+.checkout-page .checkout-nfts { display: grid; gap: 12px; }
+.checkout-page .checkout-nft { display: grid; grid-template-columns: 70px minmax(0, 1fr) auto; align-items: center; gap: 8px; min-height: 70px; padding-right: 8px; background: #2b1d19; }
+.checkout-page .checkout-nft > img { width: 70px; height: 70px; border-radius: 4px; object-fit: cover; }
+.checkout-page .checkout-nft-info { min-width: 0; overflow-wrap: anywhere; }
+.checkout-page .checkout-nft-info h3 { font-size: 16px; font-weight: 700; line-height: 1.4; }
+.checkout-page .checkout-nft-info p { color: var(--muted-foreground); font-size: 12px; }
+.checkout-page .checkout-nft-total { max-width: 112px; color: var(--primary); font-size: 18px; font-weight: 700; text-align: right; overflow-wrap: anywhere; }
+.checkout-page .checkout-coupon { margin-top: 12px; color: var(--muted-foreground); font-size: 12px; }
+.checkout-page .checkout-totals { display: grid; gap: 12px; margin-top: 20px; font-size: 14px; }
+.checkout-page .checkout-totals > div { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+.checkout-page .checkout-totals dt { min-width: 0; }
+.checkout-page .checkout-totals dd { font-size: 18px; text-align: right; overflow-wrap: anywhere; }
+.checkout-page .checkout-totals .checkout-total-final { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); font-size: 16px; font-weight: 700; }
+.checkout-page .checkout-total-final dd { color: var(--primary); font-size: 20px; }
+.checkout-page .checkout-selected-wallet { margin-top: 12px; }
+.checkout-page .checkout-selected-wallet h2 { text-align: center; }
+.checkout-page .checkout-wallet-card { display: flex; align-items: center; gap: 12px; min-width: 0; padding: 12px; border: 1px solid var(--primary); border-radius: 3px; }
+.checkout-page .checkout-wallet-card > svg { width: 20px; height: 20px; flex-shrink: 0; color: var(--primary); }
+.checkout-page .checkout-wallet-card > div { min-width: 0; overflow-wrap: anywhere; }
+.checkout-page .checkout-wallet-card span { color: var(--muted-foreground); font-size: 12px; }
+.checkout-page .checkout-quote { display: flex; align-items: center; gap: 8px; margin-top: 16px; color: var(--muted-foreground); font-size: 12px; }
+.checkout-page .checkout-quote svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--primary); }
+.checkout-page .checkout-feedback { margin-top: 16px; padding: 12px; border: 1px solid var(--border); border-radius: 3px; color: var(--muted-foreground); overflow-wrap: anywhere; }
+.checkout-page .checkout-feedback-error { border-color: var(--destructive); color: var(--destructive); }
+.checkout-page .checkout-actions { display: grid; gap: 12px; margin-top: 24px; }
+.checkout-page .checkout-actions button { width: 100%; min-height: 44px; height: auto; padding: 10px 12px; border-radius: 6px; white-space: normal; font-size: 14px; font-weight: 700; }
+.checkout-page .checkout-actions button[data-variant="outline"] { border-color: var(--border); background: transparent; color: var(--muted-foreground); }
+.checkout-page .checkout-confirm { min-height: 48px; }
+.checkout-page.checkout-loading { display: grid; gap: 24px; }
+
+@media (min-width: 640px) {
+  .checkout-page .checkout-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 1024px) {
+  .checkout-page .checkout-layout { grid-template-columns: minmax(0, 768fr) minmax(0, 400fr); gap: 32px; min-height: 744px; }
+  .checkout-page .checkout-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+
+@media (max-width: 639px) {
+  .checkout-page { padding-bottom: 32px; }
+  .checkout-page .checkout-title { font-size: 22px; }
+  .checkout-page .checkout-summary { padding: 20px 12px; border-radius: 20px; background: #2b1d19; }
+  .checkout-page .checkout-nft { grid-template-columns: 56px minmax(0, 1fr) auto; }
+  .checkout-page .checkout-nft > img { width: 56px; height: 64px; }
+  .checkout-page .checkout-nft-info h3 { font-size: 14px; }
+  .checkout-page .checkout-nft-total { max-width: 88px; font-size: 16px; }
+  .checkout-page .checkout-actions button { border-radius: 999px; }
+  .checkout-page .checkout-wallet-card { border-radius: 12px; }
+}
+
+@media (max-width: 359px) {
+  .checkout-page .checkout-summary { padding-inline: 8px; }
+  .checkout-page .checkout-nft { grid-template-columns: 48px minmax(0, 1fr); }
+  .checkout-page .checkout-nft > img { width: 48px; grid-row: 1 / 3; }
+  .checkout-page .checkout-nft-total { grid-column: 2; max-width: none; padding-bottom: 8px; font-size: 14px; text-align: left; }
+  .checkout-page .checkout-totals dd { font-size: 16px; }
+}

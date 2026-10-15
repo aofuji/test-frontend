@@ -124,7 +124,7 @@ try {
   await page.getByRole('heading',{name:'Gerenciamento de carteiras'}).waitFor()
   await page.getByRole('button',{name:'Editar Carteira principal'}).click()
   await page.getByText('Editar carteira',{exact:true}).waitFor()
-  await page.getByRole('textbox',{name:'Nome'}).fill('Carteira revisada')
+  await page.getByRole('textbox',{name:'Apelido da carteira',exact:true}).fill('Carteira revisada')
   await page.getByRole('button',{name:'Salvar carteira'}).click()
   await page.getByRole('status').filter({hasText:'Carteira atualizada'}).waitFor()
   await page.reload()

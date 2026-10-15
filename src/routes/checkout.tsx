@@ -1,5 +1,6 @@
+import Decimal from 'decimal.js'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { CheckCircle2, RefreshCw, ShieldCheck, WalletCards } from 'lucide-react'
+import { RefreshCw, ShieldCheck, WalletCards } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
@@ -14,15 +15,8 @@ import { ApiError } from '@/api/http/errors'
 import type { Quote } from '@/api/types/cart'
 import type { OrderScenario } from '@/api/types/order'
 import type { WalletNetwork } from '@/api/types/wallet'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import {
   Select,
   SelectContent,
@@ -30,10 +24,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
+
 import { Skeleton } from '@/components/ui/skeleton'
 import { nftNoticeEvent } from '@/realtime/useRealtime'
 import type { NftUpdatedEvent } from '@/api/types/realtime'
+
+import './checkout.css'
 
 const checkoutAttemptKey = 'nft-marketplace.checkout-attempt.v1'
 const checkoutImageByNftId: Record<string, string> = {
@@ -281,9 +278,9 @@ function CheckoutPage() {
 
   if (isLoading) {
     return (
-      <section className="space-y-6">
+      <section className="checkout-page checkout-loading" aria-label="Carregando checkout" aria-busy="true">
         <Skeleton className="h-10 w-64" />
-        <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="checkout-layout">
           <Skeleton className="h-96" />
           <Skeleton className="h-80" />
         </div>
@@ -328,48 +325,36 @@ function CheckoutPage() {
   }
 
   return (
-    <section className="space-y-7">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-            Checkout
-          </p>
-          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-            Confirmar compra
-          </h1>
-        </div>
-        <Badge variant="outline">Sessao ativa</Badge>
-      </div>
+    <section className="checkout-page">
+      <nav className="checkout-breadcrumb" aria-label="Caminho de navegação">
+        <Link to="/" search={catalogSearch}>Início</Link>
+        <span aria-hidden="true">/</span>
+        <Link to="/" search={catalogSearch} hash="catalogo">Mercado</Link>
+        <span aria-hidden="true">/</span>
+        <span aria-current="page">Pagamento</span>
+      </nav>
+      <h1 className="checkout-title">Confirmar compra</h1>
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="space-y-5">
-          <Card className="rounded-sm border-border/80 bg-card/80 shadow-none">
-            <CardHeader className="p-5 pb-3">
-              <CardTitle className="text-lg">Dados do colecionador</CardTitle>
-              <CardDescription>
-                Conta autenticada usada para emitir o pedido simulado.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-2 p-5 pt-0 text-sm">
-              <span className="font-medium">{sessionQuery.data?.user.name}</span>
-              <span className="text-muted-foreground">
-                {sessionQuery.data?.user.email}
-              </span>
-            </CardContent>
-          </Card>
+      <div className="checkout-layout">
+        <div className="checkout-collector">
+          <section aria-labelledby="checkout-profile-heading">
+            <h2 id="checkout-profile-heading">Perfil do colecionador</h2>
+            <div className="checkout-fields">
+              <label>
+                Nome de exibição
+                <Input value={sessionQuery.data?.user.name ?? ''} readOnly autoComplete="name" />
+              </label>
+              <label>
+                E-mail
+                <Input value={sessionQuery.data?.user.email ?? ''} readOnly autoComplete="email" />
+              </label>
+            </div>
+          </section>
 
-          <Card className="rounded-sm border-border/80 bg-card/80 shadow-none">
-            <CardHeader className="p-5 pb-3">
-              <CardTitle className="flex items-center gap-2 text-lg">
-                <WalletCards className="size-4" aria-hidden="true" />
-                Carteira e rede
-              </CardTitle>
-              <CardDescription>
-                Selecione uma carteira simulada conectada para esta compra.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4 p-5 pt-0 md:grid-cols-2">
-              <label className="grid gap-2 text-sm font-medium">
+          <section aria-labelledby="checkout-wallet-heading" className="checkout-wallet-fields">
+            <h2 id="checkout-wallet-heading">Carteira e rede</h2>
+            <div className="checkout-fields">
+              <label>
                 Carteira
                 <Select
                   value={selectedWallet?.id ?? ''}
@@ -398,7 +383,7 @@ function CheckoutPage() {
                   </SelectContent>
                 </Select>
               </label>
-              <label className="grid gap-2 text-sm font-medium">
+              <label>
                 Rede
                 <Select
                   value={network}
@@ -418,132 +403,124 @@ function CheckoutPage() {
                   </SelectContent>
                 </Select>
               </label>
-              <div className="md:col-span-2">
-                {selectedWallet ? (
-                  <div className="space-y-2">
-                    <p className="break-all rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                      {selectedWallet.address}
-                    </p>
-                    {selectedWallet.status !== 'connected' ? (
-                      <p role="alert" className="text-sm text-destructive">
-                        Carteira desconectada. Conecte-a em Carteiras para continuar.
-                      </p>
-                    ) : null}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    <p className="text-sm text-muted-foreground">
-                      Cadastre uma carteira para continuar.
-                    </p>
-                    <Button asChild type="button" variant="outline" size="sm">
-                      <Link to="/wallets">Cadastrar carteira</Link>
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+              {selectedWallet ? (
+                <label className="checkout-address">
+                  Endereço da carteira
+                  <Input value={selectedWallet.address} readOnly />
+                </label>
+              ) : null}
+            </div>
+            {selectedWallet && selectedWallet.status !== 'connected' ? (
+              <p role="alert" className="checkout-wallet-alert">
+                Carteira desconectada. Conecte-a em Carteiras para continuar.
+              </p>
+            ) : null}
+            {!selectedWallet ? <p className="checkout-wallet-alert">Cadastre uma carteira para continuar.</p> : null}
+            <Link to="/wallets" className="checkout-manage-wallet">{selectedWallet ? 'Gerenciar carteiras' : 'Cadastrar carteira'}</Link>
+          </section>
 
-          <Card className="rounded-sm border-border/80 bg-card/80 shadow-none">
-            <CardHeader className="p-5 pb-3">
-              <CardTitle>Cenario deterministico</CardTitle>
-              <CardDescription>
-                Controle do MSW para validar recuperacao de falhas sem logica no
-                componente.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-5 pt-0">
-              <Select
-                value={scenario}
-                onValueChange={(value) => {
-                  setScenario(value as OrderScenario)
-                  setQuote(null)
-                  clearAttempt(userId)
-                }}
-              >
-                <SelectTrigger aria-label="Cenario do pedido" className="h-10 w-full sm:w-80">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="confirmed">Pagamento confirmado</SelectItem>
-                  <SelectItem value="pending">Pedido pendente</SelectItem>
-                  <SelectItem value="declined">Pagamento recusado</SelectItem>
-                  <SelectItem value="timeout-before-create">
-                    Timeout antes do pedido
-                  </SelectItem>
-                  <SelectItem value="timeout-after-create">
-                    Timeout apos criar pedido
-                  </SelectItem>
-                  <SelectItem value="quote-expired">Cotacao expirada</SelectItem>
-                  <SelectItem value="price-change">Alteracao de preco</SelectItem>
-                  <SelectItem value="sold-out">NFT esgotado</SelectItem>
-                  <SelectItem value="session-expired">Sessao expirada</SelectItem>
-                  <SelectItem value="error">Erro HTTP 500</SelectItem>
-                </SelectContent>
-              </Select>
-            </CardContent>
-          </Card>
+          {import.meta.env.DEV || import.meta.env.MODE === 'test' ? (
+            <details className="checkout-development">
+              <summary>Ferramentas de desenvolvimento</summary>
+              <div className="checkout-development-content">
+                <h2>Cenario deterministico</h2>
+                <p>Controle do MSW para testes de confirmação e recuperação de falhas.</p>
+                <Select
+                  value={scenario}
+                  onValueChange={(value) => {
+                    setScenario(value as OrderScenario)
+                    setQuote(null)
+                    clearAttempt(userId)
+                  }}
+                >
+                  <SelectTrigger aria-label="Cenario do pedido" className="h-10 w-full sm:w-80">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="confirmed">Pagamento confirmado</SelectItem>
+                    <SelectItem value="pending">Pedido pendente</SelectItem>
+                    <SelectItem value="declined">Pagamento recusado</SelectItem>
+                    <SelectItem value="timeout-before-create">
+                      Timeout antes do pedido
+                    </SelectItem>
+                    <SelectItem value="timeout-after-create">
+                      Timeout apos criar pedido
+                    </SelectItem>
+                    <SelectItem value="quote-expired">Cotacao expirada</SelectItem>
+                    <SelectItem value="price-change">Alteracao de preco</SelectItem>
+                    <SelectItem value="sold-out">NFT esgotado</SelectItem>
+                    <SelectItem value="session-expired">Sessao expirada</SelectItem>
+                    <SelectItem value="error">Erro HTTP 500</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </details>
+          ) : null}
         </div>
 
-        <Card className="self-start rounded-sm border-border/80 bg-card/80 shadow-none lg:sticky lg:top-24">
-          <CardHeader className="p-5 pb-3">
-            <CardTitle className="text-lg">Revisao do pedido</CardTitle>
-            <CardDescription>
-              A compra usa um snapshot de cotacao valido por 5 minutos.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-5 pt-0">
-            <div className="space-y-3">
-              {cart.items.map((item) => (
-                <div key={item.id} className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3 rounded-sm border border-border/70 p-2">
-                  <img src={checkoutImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" className="size-14 rounded-sm object-cover" />
-                  <div className="grid gap-1">
-                  <span className="truncate font-medium">{item.name}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {item.editionLabel} - {item.quantity} x {item.unitPriceEth} ETH
-                  </span>
-                  </div>
+        <section className="checkout-summary" aria-labelledby="checkout-summary-heading">
+          <h2 id="checkout-summary-heading">Seus NFTs</h2>
+          <div className="checkout-summary-columns" aria-hidden="true"><span>NFTs</span><span>Subtotal</span></div>
+          <div className="checkout-nfts">
+            {cart.items.map((item) => (
+              <div key={item.id} className="checkout-nft">
+                <img src={checkoutImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" />
+                <div className="checkout-nft-info">
+                  <h3>{item.name}</h3>
+                  <p>{item.editionLabel} · {item.quantity} × {item.unitPriceEth} ETH</p>
                 </div>
-              ))}
-            </div>
-
-            <Separator />
-            <Totals
-              subtotal={cart.totals.subtotalEth}
-              discount={cart.totals.discountEth}
-              fee={cart.totals.networkFeeEth}
-              total={cart.totals.totalEth}
-            />
-            {quote ? (
-              <p className="flex items-center gap-2 break-all text-sm text-muted-foreground">
-                <ShieldCheck className="size-4 text-primary" aria-hidden="true" />
-                Cotacao {quote.id} valida ate {formatDate(quote.expiresAt)}
-              </p>
-            ) : null}
-            {statusMessage ? (
-              <p role={statusIsError ? 'alert' : 'status'} className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                {statusMessage}
-              </p>
-            ) : null}
-            <div className="grid gap-2">
-              <Button
-                variant="outline"
-                onClick={() => void handleQuote()}
-                disabled={quoteMutation.isPending || orderMutation.isPending}
-              >
-                <RefreshCw className="size-4" aria-hidden="true" />
-                {quoteMutation.isPending ? 'Atualizando...' : 'Revalidar cotacao'}
-              </Button>
-              <Button
-                onClick={() => void handleConfirm()}
-                disabled={!canCheckout || orderMutation.isPending || quoteMutation.isPending}
-              >
-                <CheckCircle2 className="size-4" aria-hidden="true" />
-                {orderMutation.isPending ? 'Confirmando...' : 'Confirmar compra'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <p className="checkout-nft-total">{new Decimal(item.unitPriceEth).mul(item.quantity).toString()} ETH</p>
+              </div>
+            ))}
+          </div>
+          {cart.coupon ? <p className="checkout-coupon">Cupom aplicado: {cart.coupon.code} · {cart.coupon.label}</p> : null}
+          <Totals
+            subtotal={cart.totals.subtotalEth}
+            discount={cart.totals.discountEth}
+            fee={cart.totals.networkFeeEth}
+            total={cart.totals.totalEth}
+          />
+          <div className="checkout-selected-wallet">
+            <h2>Carteira e rede</h2>
+            {selectedWallet ? (
+              <div className="checkout-wallet-card">
+                <WalletCards aria-hidden="true" />
+                <div>
+                  <p>{selectedWallet.label}</p>
+                  <span>{network} · {selectedWallet.status === 'connected' ? 'Conectada' : 'Desconectada'}</span>
+                </div>
+              </div>
+            ) : <Link to="/wallets">Cadastrar carteira</Link>}
+          </div>
+          {quote ? (
+            <p className="checkout-quote">
+              <ShieldCheck aria-hidden="true" />
+              Cotação válida até {formatDate(quote.expiresAt)}
+            </p>
+          ) : null}
+          {statusMessage ? (
+            <p role={statusIsError ? 'alert' : 'status'} className={`checkout-feedback${statusIsError ? ' checkout-feedback-error' : ''}`}>
+              {statusMessage}
+            </p>
+          ) : null}
+          <div className="checkout-actions">
+            <Button
+              variant="outline"
+              onClick={() => void handleQuote()}
+              disabled={quoteMutation.isPending || orderMutation.isPending}
+            >
+              <RefreshCw className="size-4" aria-hidden="true" />
+              {quoteMutation.isPending ? 'Atualizando...' : 'Revalidar cotacao'}
+            </Button>
+            <Button
+              className="checkout-confirm"
+              onClick={() => void handleConfirm()}
+              disabled={!canCheckout || orderMutation.isPending || quoteMutation.isPending}
+            >
+              {orderMutation.isPending ? 'Confirmando...' : 'Confirmar compra'}
+            </Button>
+          </div>
+        </section>
       </div>
     </section>
   )
@@ -561,7 +538,7 @@ function Totals({
   total: string
 }) {
   return (
-    <dl className="grid gap-2 text-sm">
+    <dl className="checkout-totals">
       <TotalRow label="Subtotal" value={`${subtotal} ETH`} />
       <TotalRow label="Desconto" value={`-${discount} ETH`} />
       <TotalRow label="Taxa de rede" value={`${fee} ETH`} />
@@ -580,9 +557,9 @@ function TotalRow({
   strong?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className={strong ? 'text-lg font-semibold' : 'font-medium'}>{value}</dd>
+    <div className={strong ? 'checkout-total-final' : undefined}>
+      <dt>{label}</dt>
+      <dd>{value}</dd>
     </div>
   )
 }
@@ -597,7 +574,7 @@ function StateCard({
   action: ReactNode
 }) {
   return (
-    <section className="grid min-h-[55svh] place-items-center">
+    <section className="checkout-page checkout-state grid min-h-[55svh] place-items-center">
       <Card className="max-w-xl">
         <CardContent className="space-y-5 p-8">
           <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
@@ -652,3 +629,10 @@ export const Route = createFileRoute('/checkout')({
   beforeLoad: ({ context, location }) => context.auth.ensureSession(location),
   component: CheckoutPage,
 })
+
+const catalogSearch = {
+  availability: 'all',
+  sort: 'newest',
+  page: 1,
+  scenario: 'normal',
+} as const
