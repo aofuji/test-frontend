@@ -14,7 +14,7 @@ function preserveIntent(intent: FavoriteIntent) {
   window.location.assign(`/login?redirect=${encodeURIComponent(intent.returnTo)}`)
 }
 
-export function FavoriteButton({ nftId, name }: { nftId: string; name: string }) {
+export function FavoriteButton({ nftId, name, showLabel = false }: { nftId: string; name: string; showLabel?: boolean }) {
   const session = useSession()
   const favorites = useFavorites()
   const mutation = useSetFavorite()
@@ -50,8 +50,9 @@ export function FavoriteButton({ nftId, name }: { nftId: string; name: string })
 
   const error = mutation.error instanceof ApiError ? mutation.error.message : favorites.error instanceof ApiError ? favorites.error.message : null
   return <div className="flex min-w-0 flex-col items-start gap-1">
-    <Button type="button" size="icon" variant={favorite ? 'secondary' : 'outline'} onClick={toggle} disabled={session.isPending || mutation.isPending} aria-pressed={favorite} aria-label={`${favorite ? 'Remover' : 'Adicionar'} ${name} ${favorite ? 'dos' : 'aos'} favoritos`} title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}>
+    <Button type="button" size={showLabel ? 'default' : 'icon'} className={showLabel ? 'nft-favorite' : undefined} variant={favorite ? 'secondary' : 'outline'} onClick={toggle} disabled={session.isPending || mutation.isPending} aria-pressed={favorite} aria-label={`${favorite ? 'Remover' : 'Adicionar'} ${name} ${favorite ? 'dos' : 'aos'} favoritos`} title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}>
       <Heart className={favorite ? 'fill-current' : ''} aria-hidden="true" />
+      {showLabel ? (favorite ? 'Favoritado' : 'Favoritar') : null}
     </Button>
     {error ? <span role="alert" className="max-w-40 text-xs text-destructive">{error} <button type="button" className="underline" onClick={() => { mutation.reset(); void favorites.refetch() }}>Tentar novamente</button></span> : null}
     {mutation.isSuccess ? <span role="status" className="sr-only">Favoritos atualizados.</span> : null}

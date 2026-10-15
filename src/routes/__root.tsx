@@ -5,7 +5,6 @@ import {
   useNavigate,
 } from "@tanstack/react-router";
 import {
-  LogOut,
   Search,
   ShoppingCart,
   UserRound,
@@ -13,7 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
-import { useLogout, useSession } from "@/api/hooks/useAuth";
+import { useSession } from "@/api/hooks/useAuth";
 import { useCart } from "@/api/hooks/useCart";
 import { LoginForm, RegisterForm } from "@/components/auth/auth-forms";
 import { Button } from "@/components/ui/button";
@@ -25,7 +24,6 @@ import { Footer } from "@/components/layout/footer";
 function RootLayout() {
   const sessionQuery = useSession();
   const cartQuery = useCart();
-  const logoutMutation = useLogout();
   useRealtime(sessionQuery.data?.user.id ?? null);
   const navigate = useNavigate();
   const [authModal, setAuthModal] = useState<AuthModalMode | null>(null);
@@ -97,35 +95,8 @@ function RootLayout() {
               <ShoppingCart aria-hidden="true" className="size-4" />
               {cartCount > 0 ? <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-primary px-1 text-[10px] font-bold leading-4 text-primary-foreground">{cartCount}</span> : null}
             </Link>
-            {logoutMutation.error ? (
-              <p role="alert" className="text-sm text-destructive">
-                {logoutMutation.error.message} Tente sair novamente.
-              </p>
-            ) : null}
             {sessionQuery.data ? (
-              <>
-                <Link to="/profile" className="hidden items-center gap-1 rounded-sm px-2 py-1 text-xs text-[#d8c9c0] transition hover:text-primary focus-visible:ring-2 focus-visible:ring-primary sm:flex"><UserRound aria-hidden="true" className="size-4" /><span className="max-w-24 truncate">{sessionQuery.data.user.name}</span></Link>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="rounded-sm"
-                  disabled={logoutMutation.isPending}
-                  onClick={() => {
-                    logoutMutation.mutate(undefined, {
-                      onSuccess: () => {
-                        window.dispatchEvent(
-                          new Event("nft-marketplace:logout"),
-                        );
-                        window.location.assign("/");
-                      },
-                    });
-                  }}
-                >
-                  <LogOut aria-hidden="true" />
-                  Sair
-                </Button>
-              </>
+              <Link to="/profile" className="hidden items-center gap-1 rounded-sm px-2 py-1 text-xs text-[#d8c9c0] transition hover:text-primary focus-visible:ring-2 focus-visible:ring-primary sm:flex"><UserRound aria-hidden="true" className="size-4" /><span className="max-w-24 truncate">{sessionQuery.data.user.name}</span></Link>
             ) : (
               <Button type="button" size="sm" className="cursor-pointer rounded-sm bg-primary px-4 font-bold text-primary-foreground hover:bg-primary/90" onClick={(event) => openAuthModal("login", event.currentTarget)}>Entrar</Button>
             )}
