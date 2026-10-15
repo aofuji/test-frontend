@@ -1,0 +1,64 @@
+.checkout-mobile-heading, .checkout-mobile-wallet-heading, .checkout-mobile-wallets, .checkout-mobile-review-toggle { display: none; }
+
+/* Mobile / Pagamento: the same checkout state and handlers in one panel. */
+@media (max-width: 639px) {
+  #root > div:has(> main .checkout-page) > header { display: none; }
+  #root > div > main:has(.checkout-page) { padding: 8px; }
+  .checkout-page { display: flex; flex-direction: column; min-height: calc(100svh - 16px); overflow: hidden; border-radius: 44px; padding: 32px 28px; background: #140d0a; }
+  .checkout-page .checkout-breadcrumb, .checkout-page .checkout-title, .checkout-profile-fields { display: none; }
+  .checkout-page .checkout-mobile-heading { display: flex; align-items: center; gap: 24px; margin-bottom: 28px; }
+  .checkout-mobile-heading > a { display: grid; width: 36px; height: 36px; flex-shrink: 0; place-items: center; border: 1px solid #422d1e; border-radius: 50%; background: #322016; color: #b39463; outline: none; }
+  .checkout-mobile-heading > a svg { width: 18px; height: 18px; }
+  .checkout-mobile-heading > a:focus-visible { outline: 2px solid #d28a4c; outline-offset: 3px; }
+  .checkout-mobile-heading h1 { font-size: clamp(16px, 4.8vw, 20px); font-weight: 700; line-height: 28px; }
+  .checkout-page .checkout-layout { display: flex; flex: 1; flex-direction: column; gap: 0; min-height: 0; }
+  .checkout-page .checkout-collector { display: contents; }
+  .checkout-page .checkout-wallet-fields { margin: 0; }
+  .checkout-page .checkout-mobile-wallet-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+  .checkout-mobile-wallet-heading h2 { margin: 0; font-size: 16px; line-height: 24px; }
+  .checkout-mobile-wallet-heading a { flex-shrink: 0; color: #d28a4c; font-size: 12px; font-weight: 700; }
+  .checkout-mobile-wallet-heading a:focus-visible { outline: 2px solid #d28a4c; outline-offset: 3px; }
+  .checkout-page .checkout-mobile-wallets { display: grid; min-width: 0; gap: 20px; margin: 0 0 16px; padding: 0; border: 0; }
+  .checkout-mobile-wallet-option { display: flex; min-width: 0; align-items: center; gap: 20px; min-height: 94px; padding: 12px 20px; border-radius: 16px; background: #281914; cursor: pointer; }
+  .checkout-mobile-wallet-option:focus-within { outline: 2px solid #d28a4c; outline-offset: 2px; }
+  .checkout-mobile-wallet-option input { appearance: none; display: grid; width: 16px; height: 16px; flex-shrink: 0; place-items: center; border: 1px solid #704729; border-radius: 50%; outline: none; }
+  .checkout-mobile-wallet-option input:checked { border-color: #d28a4c; }
+  .checkout-mobile-wallet-option input:checked::before { width: 8px; height: 8px; border-radius: 50%; background: #d28a4c; content: ''; }
+  .checkout-mobile-wallet-option > span { display: grid; min-width: 0; gap: 2px; }
+  .checkout-mobile-wallet-option strong { overflow-wrap: anywhere; font-size: 16px; line-height: 22px; }
+  .checkout-mobile-wallet-option > span > span { color: #b39463; font-size: 14px; line-height: 20px; }
+  .checkout-mobile-wallet-option > span > span.text-destructive { color: var(--destructive); }
+  .checkout-page .checkout-wallet-fields > h2 { margin: 0 0 12px; font-size: 16px; }
+  .checkout-page .checkout-fields > .checkout-wallet-select, .checkout-page .checkout-fields > .checkout-address, .checkout-page .checkout-manage-wallet, .checkout-page .checkout-development { display: none; }
+  .checkout-page .checkout-fields { display: block; }
+  .checkout-page .checkout-fields > label { gap: 8px; color: #b39463; font-size: 12px; }
+  .checkout-page .checkout-fields [data-slot='select-trigger'] { height: 52px; border-color: #422d1e; border-radius: 14px; background: #281914; padding-inline: 16px; color: #f5f1eb; font-family: inherit; font-size: 14px; }
+  .checkout-page .checkout-wallet-alert { font-size: 12px; }
+
+  .checkout-page .checkout-summary { display: flex; flex: 1; flex-direction: column; margin-top: 16px; padding: 0; border-radius: 0; background: transparent; }
+  .checkout-page .checkout-summary > h2, .checkout-page .checkout-summary-columns, .checkout-page .checkout-nfts, .checkout-page .checkout-coupon, .checkout-page .checkout-totals > div:not(.checkout-total-final), .checkout-page .checkout-selected-wallet { display: none; }
+  .checkout-page .checkout-mobile-review-toggle { display: block; align-self: end; margin: 12px 0 0; padding: 4px 0; color: #b39463; font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+  .checkout-page .checkout-totals { order: -1; margin: 0; }
+  .checkout-page .checkout-totals .checkout-total-final { justify-content: end; gap: 20px; margin: 0; padding: 0; border: 0; font-size: 16px; }
+  .checkout-page .checkout-total-final dd { font-size: 18px; }
+  .checkout-page .checkout-total-final dt::after { content: ':'; }
+  .checkout-page[data-review-open='true'] .checkout-summary > h2 { display: block; margin-top: 16px; font-size: 16px; }
+  .checkout-page[data-review-open='true'] .checkout-summary-columns { display: flex; }
+  .checkout-page[data-review-open='true'] .checkout-nfts { display: grid; gap: 8px; }
+  .checkout-page[data-review-open='true'] .checkout-coupon { display: block; }
+  .checkout-page[data-review-open='true'] .checkout-totals > div:not(.checkout-total-final) { display: flex; font-size: 12px; }
+  .checkout-page[data-review-open='true'] .checkout-totals dd { font-size: 14px; }
+  .checkout-page[data-review-open='true'] .checkout-total-final dd { font-size: 18px; }
+  .checkout-page .checkout-nft { grid-template-columns: 48px minmax(0, 1fr) auto; }
+  .checkout-page .checkout-nft > img { width: 48px; height: 48px; }
+  .checkout-page .checkout-nft-info h3 { font-size: 12px; }
+  .checkout-page .checkout-nft-info p { font-size: 10px; }
+  .checkout-page .checkout-nft-total { max-width: 72px; font-size: 12px; }
+  .checkout-page .checkout-quote, .checkout-page .checkout-feedback { font-size: 12px; }
+  .checkout-page .checkout-actions { gap: 12px; margin-top: auto; padding-top: 24px; }
+  .checkout-page .checkout-actions > button[data-variant='outline'] { width: auto; min-height: 32px; margin-left: auto; padding: 4px 0; border: 0; font-size: 12px; }
+  .checkout-page .checkout-actions .checkout-confirm { width: 100%; min-height: 60px; border-radius: 999px; background: linear-gradient(110deg, #d28a4c, #b97a42); font-family: inherit; font-size: 16px; }
+  .checkout-page.checkout-loading { display: flex; }
+  .checkout-page.checkout-state { align-items: stretch; overflow-wrap: anywhere; }
+  .checkout-page.checkout-state .checkout-mobile-heading { flex-shrink: 0; }
+}

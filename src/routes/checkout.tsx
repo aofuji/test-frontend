@@ -1,6 +1,6 @@
 import Decimal from 'decimal.js'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { RefreshCw, ShieldCheck, WalletCards } from 'lucide-react'
+import { ChevronLeft, RefreshCw, ShieldCheck, WalletCards } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useEffect, useState } from 'react'
 
@@ -31,6 +31,7 @@ import { nftNoticeEvent } from '@/realtime/useRealtime'
 import type { NftUpdatedEvent } from '@/api/types/realtime'
 
 import './checkout.css'
+import './checkout-mobile.css'
 
 const checkoutAttemptKey = 'nft-marketplace.checkout-attempt.v1'
 const checkoutImageByNftId: Record<string, string> = {
@@ -66,6 +67,7 @@ function CheckoutPage() {
   const orderMutation = useCreateOrder()
   const [quote, setQuote] = useState<Quote | null>(null)
   const [selectedWalletId, setSelectedWalletId] = useState('')
+  const [reviewOpen, setReviewOpen] = useState(false)
   const [network, setNetwork] = useState<WalletNetwork>('ethereum')
   const [scenario, setScenario] = useState<OrderScenario>('confirmed')
   const [statusMessage, setStatusMessage] = useState('')
@@ -158,6 +160,14 @@ function CheckoutPage() {
     cart.items.every((item) => item.available) &&
     selectedWallet?.status === 'connected',
   )
+
+  function selectWallet(walletId: string) {
+    setSelectedWalletId(walletId)
+    setQuote(null)
+    clearAttempt(userId)
+    const wallet = wallets.find((candidate) => candidate.id === walletId)
+    if (wallet) setNetwork(wallet.network)
+  }
 
   async function ensureActiveSession() {
     try {
@@ -279,6 +289,7 @@ function CheckoutPage() {
   if (isLoading) {
     return (
       <section className="checkout-page checkout-loading" aria-label="Carregando checkout" aria-busy="true">
+        <CheckoutMobileHeading />
         <Skeleton className="h-10 w-64" />
         <div className="checkout-layout">
           <Skeleton className="h-96" />
@@ -325,7 +336,8 @@ function CheckoutPage() {
   }
 
   return (
-    <section className="checkout-page">
+    <section className="checkout-page" data-review-open={reviewOpen}>
+      <CheckoutMobileHeading />
       <nav className="checkout-breadcrumb" aria-label="Caminho de navegação">
         <Link to="/" search={catalogSearch}>Início</Link>
         <span aria-hidden="true">/</span>
@@ -337,7 +349,7 @@ function CheckoutPage() {
 
       <div className="checkout-layout">
         <div className="checkout-collector">
-          <section aria-labelledby="checkout-profile-heading">
+          <section aria-labelledby="checkout-profile-heading" className="checkout-profile-fields">
             <h2 id="checkout-profile-heading">Perfil do colecionador</h2>
             <div className="checkout-fields">
               <label>
@@ -352,24 +364,31 @@ function CheckoutPage() {
           </section>
 
           <section aria-labelledby="checkout-wallet-heading" className="checkout-wallet-fields">
+            <div className="checkout-mobile-wallet-heading">
+              <h2>{selectedWallet?.status === 'connected' ? 'Carteira conectada' : 'Carteiras cadastradas'}</h2>
+              <Link to="/wallets">{wallets.length ? 'Trocar carteira' : 'Cadastrar carteira'}</Link>
+            </div>
+            <fieldset className="checkout-mobile-wallets">
+              <legend className="sr-only">Carteiras cadastradas</legend>
+              {wallets.map((wallet) => (
+                <label key={wallet.id} className="checkout-mobile-wallet-option">
+                  <input type="radio" name="checkout-wallet" value={wallet.id} checked={selectedWallet?.id === wallet.id} onChange={() => selectWallet(wallet.id)} aria-label={`${wallet.label}, ${wallet.network}`} />
+                  <span>
+                    <strong>{wallet.label}</strong>
+                    <span title={wallet.address}>{wallet.address.slice(0, 6)}…{wallet.address.slice(-4)}</span>
+                    <span>Rede {wallet.network}</span>
+                    {wallet.status !== 'connected' ? <span className="text-destructive">Desconectada</span> : null}
+                  </span>
+                </label>
+              ))}
+            </fieldset>
             <h2 id="checkout-wallet-heading">Carteira e rede</h2>
             <div className="checkout-fields">
-              <label>
+              <label className="checkout-wallet-select">
                 Carteira
                 <Select
                   value={selectedWallet?.id ?? ''}
-                  onValueChange={(walletId) => {
-                    setSelectedWalletId(walletId)
-                    setQuote(null)
-                    clearAttempt(userId)
-                    const wallet = wallets.find(
-                      (candidate) => candidate.id === walletId,
-                    )
-
-                    if (wallet) {
-                      setNetwork(wallet.network)
-                    }
-                  }}
+                  onValueChange={selectWallet}
                 >
                   <SelectTrigger aria-label="Carteira do pedido" className="h-10 w-full">
                     <SelectValue placeholder="Selecione" />
@@ -459,9 +478,10 @@ function CheckoutPage() {
         </div>
 
         <section className="checkout-summary" aria-labelledby="checkout-summary-heading">
+          <button type="button" className="checkout-mobile-review-toggle" aria-expanded={reviewOpen} aria-controls="checkout-review-items" onClick={() => setReviewOpen((current) => !current)}>{reviewOpen ? 'Ocultar resumo do pedido' : 'Revisar pedido'}</button>
           <h2 id="checkout-summary-heading">Seus NFTs</h2>
           <div className="checkout-summary-columns" aria-hidden="true"><span>NFTs</span><span>Subtotal</span></div>
-          <div className="checkout-nfts">
+          <div id="checkout-review-items" className="checkout-nfts">
             {cart.items.map((item) => (
               <div key={item.id} className="checkout-nft">
                 <img src={checkoutImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" />
@@ -526,6 +546,15 @@ function CheckoutPage() {
   )
 }
 
+function CheckoutMobileHeading() {
+  return (
+    <div className="checkout-mobile-heading">
+      <Link to="/cart" aria-label="Voltar ao carrinho"><ChevronLeft aria-hidden="true" /></Link>
+      <h1>Pagamento com carteira</h1>
+    </div>
+  )
+}
+
 function Totals({
   subtotal,
   discount,
@@ -575,6 +604,7 @@ function StateCard({
 }) {
   return (
     <section className="checkout-page checkout-state grid min-h-[55svh] place-items-center">
+      <CheckoutMobileHeading />
       <Card className="max-w-xl">
         <CardContent className="space-y-5 p-8">
           <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
