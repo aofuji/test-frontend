@@ -6,7 +6,7 @@ const page = await browser.newPage({ viewport: { width: 375, height: 1000 } })
 const base = process.env.NFT_TEST_URL || 'http://127.0.0.1:5173'
 const quantity = page.getByRole('spinbutton', { name: 'Quantidade', exact: true })
 const buy = page.getByRole('button', { name: 'Comprar NFT', exact: true })
-const cart = page.getByRole('button', { name: 'Adicionar ao carrinho', exact: true })
+const cart = page.getByRole('link', { name: 'Ver carrinho', exact: true })
 const api = (path) => page.evaluate(async (path) => (await (await fetch(`/api${path}`)).json()), path)
 
 try {
@@ -28,7 +28,7 @@ try {
   assert.equal(await page.getByRole('button', { name: '2/3', exact: true }).isDisabled(), true)
   await quantity.fill('6')
   assert.equal(await buy.isDisabled(), true)
-  assert.equal(await cart.isDisabled(), true)
+  assert.equal(await cart.getAttribute('href'), '/cart')
   await quantity.fill('1.5')
   assert.equal(await buy.isDisabled(), true)
   await page.getByRole('button', { name: '3/3', exact: true }).click()
@@ -40,10 +40,10 @@ try {
   await buy.click()
   await page.getByRole('status').filter({ hasText: 'NFT adicionado ao carrinho.' }).waitFor()
   assert.equal((await api('/cart')).cart.items.find((item) => item.nftId === 'aurora-001').quantity, 2)
-  const added = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/cart/items'))
   await cart.click()
-  await added
-  assert.equal((await api('/cart')).cart.items.find((item) => item.nftId === 'aurora-001').quantity, 4, 'Both buttons share the same purchase flow')
+  await page.waitForURL((url) => url.pathname === '/cart')
+  assert.equal((await api('/cart')).cart.items.find((item) => item.nftId === 'aurora-001').quantity, 2, 'Cart navigation must not add the item again')
+  await page.goto(`${base}/nft/aurora-001`)
 
   await page.getByRole('button', { name: 'Adicionar Aurora Chain #001 aos favoritos', exact: true }).click()
   await page.waitForURL((url) => url.pathname === '/login')
@@ -76,12 +76,12 @@ try {
   await page.goto(`${base}/nft/orbit-512`)
   await buy.waitFor()
   assert.equal(await buy.isDisabled(), true)
-  assert.equal(await cart.isDisabled(), true)
+  assert.equal(await cart.getAttribute('href'), '/cart')
   assert.equal(await quantity.isDisabled(), true)
   await page.goto(`${base}/nft/does-not-exist`)
   await page.getByRole('heading', { name: 'Nao foi possivel carregar o NFT' }).waitFor()
   assert.equal(await page.getByRole('link', { name: 'Voltar ao catálogo', exact: true }).isVisible(), true)
-  console.log('PASS NFT mobile at 375/390px, real data, no overflow or fake ratings/images, edition/stock validation, shared purchase handler, favorites login intent, gallery navigation, back link and sold/not-found states')
+  console.log('PASS NFT mobile at 375/390px, real data, no overflow or fake ratings/images, edition/stock validation, purchase and cart navigation, favorites login intent, gallery navigation, back link and sold/not-found states')
 } finally {
   await browser.close()
 }

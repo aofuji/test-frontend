@@ -121,32 +121,62 @@
   .kurio-cart .cart-skeleton-item { grid-template-columns: 70px minmax(0, 1fr) 120px; padding: 0; }
 }
 
+.cart-mobile-back, .cart-checkout-mobile-label, .cart-edition-mobile { display: none; }
+
+/* Mobile / Carrinho de NFTs: a single integrated panel. */
 @media (max-width: 639px) {
-  .kurio-cart { padding-bottom: 32px; }
-  .kurio-cart .cart-title { text-align: center; }
+  #root > div:has(> main .kurio-cart) > header { display: none; }
+  #root > div > main:has(.kurio-cart) { padding: 8px; }
+  .kurio-cart { position: relative; overflow: hidden; border-radius: 44px; padding: 0; background: #140d0a; }
+  .kurio-cart .cart-breadcrumb { display: none; }
+  .kurio-cart .cart-mobile-back { position: absolute; top: 32px; left: 28px; display: grid; width: 36px; height: 36px; place-items: center; border: 1px solid #422d1e; border-radius: 50%; background: #322016; color: var(--muted-foreground); outline: none; }
+  .kurio-cart .cart-mobile-back svg { width: 18px; height: 18px; }
+  .kurio-cart .cart-mobile-back:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+  .kurio-cart .cart-title { margin: 0 0 24px; padding: 36px 64px 0; text-align: center; font-size: 20px; line-height: 28px; }
+  .kurio-cart .cart-layout { display: block; padding-inline: 28px; }
   .kurio-cart .cart-related { display: none; }
-  .kurio-cart .cart-item-content { position: relative; grid-template-columns: 100px minmax(0, 1fr); gap: 4px 10px; min-height: 100px; padding: 0; }
+  .kurio-cart .cart-item { margin-bottom: 20px; border-radius: 14px; background: #281914; }
+  .kurio-cart .cart-item:last-child { margin-bottom: 0; }
+  .kurio-cart .cart-item-content { position: relative; grid-template-columns: 100px minmax(0, 1fr); gap: 4px 8px; min-height: 100px; padding: 0; }
   .kurio-cart .cart-item-identity { display: contents; }
-  .kurio-cart .cart-item-image { grid-column: 1; grid-row: 1 / 3; align-self: stretch; width: 100px; height: 100%; aspect-ratio: auto; border-radius: 12px 0 0 12px; }
-  .kurio-cart .cart-item-description { grid-column: 2; grid-row: 1; padding: 8px 28px 0 0; }
+  .kurio-cart .cart-item-image { grid-column: 1; grid-row: 1 / 3; align-self: center; width: 100px; height: 100px; aspect-ratio: 1; border-radius: 14px 0 0 14px; }
+  .kurio-cart .cart-item-description { grid-column: 2; grid-row: 1; align-self: end; padding: 8px 24px 0 0; }
+  .kurio-cart .cart-item-description h2 { overflow: hidden; font-size: 14px; line-height: 20px; text-overflow: ellipsis; white-space: nowrap; }
+  .kurio-cart .cart-item-edition { font-size: 12px; line-height: 18px; }
+  .kurio-cart .cart-edition-desktop { display: none; }
+  .kurio-cart .cart-edition-mobile { display: inline; }
   .kurio-cart .cart-item-provenance, .kurio-cart .cart-unit-price { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-  .kurio-cart .cart-line-total { grid-column: 2; grid-row: 2; max-width: calc(100% - 80px); padding-bottom: 8px; }
-  .kurio-cart .cart-item-quantity { grid-column: 2; grid-row: 2; justify-self: end; gap: 6px; padding: 0 8px 8px 0; }
-  .kurio-cart .cart-item-quantity button { width: 22px; height: 26px; }
-  .kurio-cart .cart-item-remove { position: absolute; top: 4px; right: 4px; width: 24px; height: 24px; }
-  .kurio-cart .cart-item-remove svg { width: 16px; height: 16px; }
-  .kurio-cart .cart-summary { padding: 24px 16px; border-radius: 24px; background: #2b1d19; }
-  .kurio-cart .cart-summary-heading { margin-bottom: 16px; }
-  .kurio-cart .cart-checkout { height: 48px; border-radius: 999px; }
-  .kurio-cart .cart-coupon-input { overflow: hidden; border: 1px solid var(--primary); border-radius: 999px; }
-  .kurio-cart .cart-coupon-input input { border: 0; }
-  .kurio-cart .cart-coupon-input button { border-radius: 999px; padding-inline: 16px; }
+  .kurio-cart .cart-line-total { grid-column: 2; grid-row: 2; align-self: start; max-width: calc(100% - 78px); padding-bottom: 8px; font-size: 18px; line-height: 26px; }
+  .kurio-cart .cart-item-quantity { grid-column: 2; grid-row: 2; align-self: start; justify-self: end; gap: 4px; padding: 0 8px 8px 0; }
+  .kurio-cart .cart-item-quantity button { width: 22px; height: 26px; border: 1px solid #422d1e; background: #322016; color: var(--foreground); font-size: 16px; }
+  .kurio-cart .cart-item-quantity > span { font-size: 14px; }
+  .kurio-cart .cart-item-remove { position: absolute; top: 2px; right: 2px; width: 22px; height: 22px; border-radius: 50%; background: transparent; }
+  .kurio-cart .cart-item-remove svg { width: 12px; height: 12px; }
+  .kurio-cart .cart-summary { margin: 4px -28px 0; padding: 24px 24px 32px; border-radius: 32px; background: #281914; }
+  .kurio-cart .cart-summary-heading { display: none; }
+  .kurio-cart .cart-summary-content { gap: 16px; }
+  .kurio-cart .cart-coupon label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .kurio-cart .cart-coupon-input { overflow: hidden; border: 1px solid #422d1e; border-radius: 999px; }
+  .kurio-cart .cart-coupon-input input { height: 50px; border: 0; padding-inline: 16px; font-family: inherit; font-size: 12px; }
+  .kurio-cart .cart-coupon-input button { height: 50px; border-radius: 999px; padding-inline: 16px; background: linear-gradient(110deg, #80552f, #d28a4c); color: #f5f1eb; font-family: inherit; font-size: 14px; }
+  .kurio-cart .cart-totals { gap: 12px; font-size: 14px; line-height: 22px; }
+  .kurio-cart .cart-totals dd { font-size: 16px; }
+  .kurio-cart .cart-totals .cart-total-final { margin-top: 8px; }
+  .kurio-cart .cart-total-final dd { font-size: 18px; }
+  .kurio-cart .cart-checkout { height: 60px; margin-top: 12px; border-radius: 999px; background: linear-gradient(110deg, #d28a4c, #b97a42); font-family: inherit; font-size: 16px; }
+  .kurio-cart .cart-checkout-desktop-label { display: none; }
+  .kurio-cart .cart-checkout-mobile-label { display: inline; }
+  .kurio-cart .cart-continue { display: none; }
+  .kurio-cart .cart-skeleton { padding-bottom: 24px; }
 }
 
 @media (max-width: 359px) {
-  .kurio-cart .cart-item-image { width: 76px; }
-  .kurio-cart .cart-item-content { grid-template-columns: 76px minmax(0, 1fr); }
-  .kurio-cart .cart-summary { padding-inline: 12px; }
-  .kurio-cart .cart-totals { font-size: 14px; }
-  .kurio-cart .cart-totals dd { font-size: 16px; }
+  .kurio-cart .cart-title { padding-inline: 60px; font-size: 16px; }
+  .kurio-cart .cart-layout { padding-inline: 20px; }
+  .kurio-cart .cart-item-image { width: 76px; height: 76px; }
+  .kurio-cart .cart-item-content { grid-template-columns: 76px minmax(0, 1fr); min-height: 76px; }
+  .kurio-cart .cart-item-description h2 { font-size: 12px; }
+  .kurio-cart .cart-item-edition { font-size: 11px; }
+  .kurio-cart .cart-line-total { font-size: 16px; }
+  .kurio-cart .cart-summary { margin-inline: -20px; padding-inline: 16px; }
 }

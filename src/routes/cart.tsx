@@ -2,7 +2,7 @@ import { useIsMutating } from '@tanstack/react-query'
 import { queryKeys } from '@/api/queryKeys'
 import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useState, type FormEvent, type ReactNode } from 'react'
-import { RotateCcw, ShoppingCart, Trash2 } from 'lucide-react'
+import { ChevronLeft, RotateCcw, ShoppingCart, Trash2 } from 'lucide-react'
 import Decimal from 'decimal.js'
 
 import './cart.css'
@@ -82,6 +82,7 @@ function CartPage() {
         <span aria-hidden="true">/</span>
         <span aria-current="page">Carrinho</span>
       </nav>
+      <Link to="/" search={catalogSearch} hash="catalogo" aria-label="Voltar ao catálogo" className="cart-mobile-back"><ChevronLeft aria-hidden="true" /></Link>
       <h1 className="cart-title">Carrinho de NFTs</h1>
 
       {cartQuery.isPending ? <CartSkeleton /> : null}
@@ -224,7 +225,7 @@ function CartPage() {
                 disabled={isBusy || cartQuery.data.items.some((item) => !item.available)}
                 onClick={handleCheckout}
               >
-                {createQuote.isPending ? 'Gerando cotacao...' : 'Prosseguir ao checkout'}
+                {createQuote.isPending ? 'Gerando cotacao...' : <><span className="cart-checkout-desktop-label">Prosseguir ao checkout</span><span className="cart-checkout-mobile-label">Continuar e finalizar</span></>}
               </Button>
               <Link to="/" search={catalogSearch} hash="catalogo" className="cart-continue">Continuar explorando</Link>
             </CardContent>
@@ -310,7 +311,7 @@ function CartLineItem({
           </div>
           <div className="cart-item-description">
             <h2>{item.name}</h2>
-            <p className="cart-item-edition">Edição: {item.editionLabel}</p>
+            <p className="cart-item-edition">Edição: <span className="cart-edition-desktop">{item.editionLabel}</span><span className="cart-edition-mobile">{item.editionLabel.replace(/^edition\s+/i, '')}</span></p>
             <p className="cart-item-provenance">{item.collection} · {item.creator} · {item.chain}</p>
             {!item.available ? <p className="text-destructive">Indisponível</p> : null}
           </div>

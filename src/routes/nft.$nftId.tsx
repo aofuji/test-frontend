@@ -185,7 +185,7 @@ function NftDetailsPage() {
                   >
                     {addCartItem.isPending ? 'Adicionando...' : <><span className="nft-buy-desktop-label">COMPRAR</span><span className="nft-buy-mobile-label">Comprar NFT</span></>}
                   </Button>
-                <Button type="button" className="nft-mobile-cart" aria-label="Adicionar ao carrinho" disabled={purchaseDisabled} onClick={addSelectedToCart}><ShoppingCart aria-hidden="true" /></Button>
+                <Button asChild className="nft-mobile-cart"><Link to="/cart" aria-label="Ver carrinho"><ShoppingCart aria-hidden="true" /></Link></Button>
                 <div className="nft-favorite-placement"><FavoriteButton nftId={nftQuery.data.id} name={nftQuery.data.name} showLabel /></div>
               </div>
             </div>
