@@ -5,6 +5,7 @@ import { ArrowRight,  RotateCcw} from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 import { useNfts } from '../api/hooks/useNfts'
+import { useCatalogInventory, useCatalogNfts, type PriceRange } from '@/components/catalog/use-catalog-nfts'
 
 import type {
 
@@ -44,7 +45,7 @@ import { Card, CardContent } from '@/components/ui/card'
 
 import { Skeleton } from '@/components/ui/skeleton'
 
-type CatalogSearch = {
+type CatalogSearch = PriceRange & {
 
   q?: string
 
@@ -92,7 +93,8 @@ function HomePage() {
 
   }
 
-  const nftsQuery = useNfts(params)
+  const nftsQuery = useCatalogNfts(params, { minPrice: search.minPrice, maxPrice: search.maxPrice })
+  const inventoryQuery = useCatalogInventory(search.scenario)
 
   const featuredQuery = useNfts({
 
@@ -192,7 +194,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section id="catalogo" aria-label="Catálogo de NFTs" className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-7 scroll-mt-24 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]">
+      <section id="catalogo" aria-label="Catálogo de NFTs" className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-7 scroll-mt-24 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[310px_minmax(0,1fr)] xl:gap-x-12">
 
           <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between lg:col-start-2">
             <div className="flex items-center gap-4 overflow-x-auto text-xs font-normal leading-6 sm:text-sm" aria-label="Visualização do catálogo">
@@ -207,7 +209,7 @@ function HomePage() {
 
           <aside aria-label="Filtros do catálogo" className="lg:sticky lg:top-20 lg:col-start-1 lg:row-start-1 lg:row-span-2">
 
-            <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group rounded-sm border border-border/80 bg-card/80 p-4 lg:p-5">
+            <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group bg-[#281914] p-4 lg:p-5">
 
               <summary className="flex cursor-pointer list-none items-center justify-between font-bold uppercase tracking-wide marker:content-none lg:hidden">
 
@@ -219,15 +221,7 @@ function HomePage() {
 
               <div className="mt-5 border-t border-border pt-5 lg:mt-0 lg:border-0 lg:pt-0">
 
-                <div className="mb-5 hidden border-b border-border pb-4 lg:block">
-
-                  <h3 className="font-bold uppercase tracking-wide">Filtros</h3>
-
-                  <p className="mt-1 text-xs text-muted-foreground">Refine a seleção disponível.</p>
-
-                </div>
-
-                <FilterPanel value={search} onChange={(patch) => updateFilters(patch)} />
+                <FilterPanel value={search} onChange={updateFilters} items={inventoryQuery.data ?? []} loading={inventoryQuery.isPending} error={inventoryQuery.isError} onRetry={() => void inventoryQuery.refetch()} />
 
               </div>
 
@@ -443,6 +437,8 @@ export const Route = createFileRoute('/')({
 
     q: getOptionalString(search.q),
 
+    ...getPriceRange(search),
+
     category: getOptionalString(search.category),
 
     chain: getOptionalString(search.chain),
@@ -465,6 +461,20 @@ function getOptionalString(value: unknown) {
 
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
 
+}
+
+function getPriceRange(search: Record<string, unknown>): PriceRange {
+  const parse = (value: unknown) => {
+    if (typeof value !== 'string' && typeof value !== 'number') return undefined
+    if (typeof value === 'string' && !value.trim()) return undefined
+    const price = Number(value)
+    return Number.isFinite(price) && price >= 0 ? price : undefined
+  }
+  const minPrice = parse(search.minPrice)
+  const maxPrice = parse(search.maxPrice)
+  return minPrice !== undefined && maxPrice !== undefined && minPrice > maxPrice
+    ? { minPrice: maxPrice, maxPrice: minPrice }
+    : { minPrice, maxPrice }
 }
 
 function getPage(value: unknown) {
