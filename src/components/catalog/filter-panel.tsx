@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { SortSelect } from '@/components/catalog/sort-select'
 
 export type CatalogFilterState = {
   category?: string
@@ -49,13 +48,6 @@ const availabilityOptions: Array<{
   { value: 'sold', label: 'Vendidos' },
 ]
 
-const scenarioOptions: Array<{ value: MockScenario; label: string }> = [
-  { value: 'normal', label: 'Normal' },
-  { value: 'latency', label: 'Latencia' },
-  { value: 'error', label: 'Erro 500' },
-  { value: 'empty', label: 'Vazio' },
-]
-
 export function FilterPanel({ value, onChange }: FilterPanelProps) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
@@ -81,13 +73,6 @@ export function FilterPanel({ value, onChange }: FilterPanelProps) {
           onChange({ availability: next as NftAvailabilityFilter })
         }
       />
-      <SortSelect value={value.sort} onChange={(sort) => onChange({ sort })} />
-      <FilterSelect
-        label="Cenario MSW"
-        value={value.scenario}
-        options={scenarioOptions}
-        onChange={(next) => onChange({ scenario: next as MockScenario })}
-      />
     </div>
   )
 }
@@ -101,10 +86,10 @@ type FilterSelectProps = {
 
 function FilterSelect({ label, value, options, onChange }: FilterSelectProps) {
   return (
-    <label className="grid gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
+    <label className="grid gap-2 text-xs font-semibold tracking-wide text-foreground">
       {label}
       <Select value={value} onValueChange={onChange}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger className="w-full rounded-sm border-border/80 bg-background/40 text-xs">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

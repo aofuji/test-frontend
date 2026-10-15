@@ -17,8 +17,8 @@ type NFTCardProps = {
 
 export function NFTCard({ nft, scenario }: NFTCardProps) {
   return (
-    <Card className="group overflow-visible rounded-sm bg-transparent p-0 ring-0">
-      <div className="relative overflow-hidden rounded-sm bg-card ring-1 ring-border">
+    <Card className="group overflow-visible rounded-sm border-0 bg-transparent p-0 shadow-none">
+      <div className="relative overflow-hidden rounded-sm bg-card ring-1 ring-border/80">
         <Link
           to="/nft/$nftId"
           params={{ nftId: nft.id }}
@@ -36,11 +36,11 @@ export function NFTCard({ nft, scenario }: NFTCardProps) {
         <span className="absolute right-3 top-3"><FavoriteButton nftId={nft.id} name={nft.name} /></span>
       </div>
 
-      <CardContent className="flex items-end justify-between gap-3 px-0 pt-3">
+      <CardContent className="flex items-start justify-between gap-3 px-0 pt-3">
         <div className="min-w-0">
-          <h3 className="truncate font-semibold">{nft.name}</h3>
-          <p className="mt-1 truncate text-xs text-muted-foreground">{nft.creator}</p>
-          <p className="mt-1 font-mono text-base font-bold text-primary">{nft.priceEth} ETH</p>
+          <h3 className="truncate text-sm font-semibold leading-5">{nft.name}</h3>
+          <p className="mt-1 truncate text-[11px] text-muted-foreground">{nft.creator}</p>
+          <p className="mt-1 font-mono text-sm font-bold text-primary">{nft.priceEth} ETH</p>
         </div>
         <Button asChild size="icon-sm" variant="ghost" className="rounded-sm text-primary">
           <Link to="/nft/$nftId" params={{ nftId: nft.id }} search={{ scenario }} aria-label={`Detalhes de ${nft.name}`}>

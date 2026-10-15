@@ -29,8 +29,8 @@ import {
 } from '@/components/catalog/filter-panel'
 
 import { Pagination } from '@/components/catalog/pagination'
+import { SortSelect } from '@/components/catalog/sort-select'
 
-import { SearchInput } from '@/components/catalog/search-input'
 
 import { NFTGrid } from '@/components/nft/nft-grid'
 
@@ -39,6 +39,7 @@ import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
 import { Badge } from '@/components/ui/badge'
 
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 import { Card, CardContent } from '@/components/ui/card'
 
@@ -231,21 +232,32 @@ function HomePage() {
 
       </section>
 
-      <section id="catalogo" aria-labelledby="catalog-heading" className="scroll-mt-24 space-y-6">
+      <section id="catalogo" aria-labelledby="catalog-heading" className="scroll-mt-24 space-y-7">
 
-        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-
+        <div className="space-y-4">
           <SectionHeading eyebrow="Mercado" title="Explore a coleção" id="catalog-heading" />
-
-          <div className="w-full lg:max-w-sm"><SearchInput value={search.q} onChange={(q) => updateFilters({ q })} /></div>
-
+          <div className="flex items-end justify-between gap-4 border-b border-border pb-2">
+            <div className="flex items-center gap-4 overflow-x-auto text-xs font-semibold" aria-label="Visualização do catálogo">
+              <button type="button" className={search.availability === 'all' && search.sort === 'newest' ? 'whitespace-nowrap border-b-2 border-primary pb-2 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-2 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ availability: 'all', sort: 'newest' })}>Todos os NFTs</button>
+              <button type="button" className={search.sort === 'newest' && search.availability !== 'all' ? 'whitespace-nowrap border-b-2 border-primary pb-2 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-2 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'newest' })}>Novos lançamentos</button>
+              <button type="button" className={search.sort === 'price-desc' ? 'whitespace-nowrap border-b-2 border-primary pb-2 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-2 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'price-desc' })}>Em alta</button>
+            </div>
+            <div className="w-56 shrink-0">
+              <SortSelect value={search.sort} onChange={(sort) => updateFilters({ sort })} />
+            </div>
+          </div>
         </div>
 
-        <div className="grid items-start gap-7 lg:grid-cols-[15rem_minmax(0,1fr)]">
+        <div className="grid items-start gap-8 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]">
 
           <aside aria-label="Filtros do catálogo" className="lg:sticky lg:top-20">
 
-            <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group rounded-sm border border-border bg-card p-4 lg:p-5">
+            <label className="mb-4 grid gap-2 text-xs font-semibold tracking-wide text-foreground">
+              Buscar NFTs
+              <Input aria-label="Buscar por nome" value={search.q ?? ''} onChange={(event) => updateFilters({ q: event.currentTarget.value || undefined })} placeholder="Aurora, Neon..." className="h-10 rounded-sm border-primary/25 bg-card" />
+            </label>
+
+            <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group rounded-sm border border-border/80 bg-card/80 p-4 lg:p-5">
 
               <summary className="flex cursor-pointer list-none items-center justify-between font-bold uppercase tracking-wide marker:content-none lg:hidden">
 
@@ -275,7 +287,7 @@ function HomePage() {
 
           <div className="min-w-0 space-y-5">
 
-            <div className="flex flex-col justify-between gap-2 border-b border-border pb-4 text-sm text-muted-foreground sm:flex-row sm:items-center">
+            <div className="flex flex-col justify-between gap-2 border-b border-border pb-3 text-xs text-muted-foreground sm:flex-row sm:items-center">
 
               <span className="font-semibold text-foreground">Todos os NFTs</span>
 
