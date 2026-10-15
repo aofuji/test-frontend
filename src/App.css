@@ -67,7 +67,7 @@
 .nft-description h2, .nft-editions > p { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
 .nft-description > p { color: var(--muted-foreground); }
 .nft-editions { margin-top: 6px; }
-.nft-edition { border: 1px solid var(--border); border-radius: 999px; padding: 0 6px; color: var(--muted-foreground); font-size: 13px; line-height: 24px; cursor: pointer; }
+.nft-edition { display: inline-flex; align-items: center; justify-content: center; min-height: 26px; border: 1px solid var(--border); border-radius: 999px; padding: 1px 5px; background: transparent; color: var(--muted-foreground); font-size: 13px; line-height: 20px; cursor: pointer; }
 .nft-edition[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); font-weight: 700; }
 .nft-edition:disabled { opacity: .45; cursor: not-allowed; }
 .nft-edition:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }

@@ -141,7 +141,7 @@ function NftDetailsPage() {
                     onClick={() => { if (edition.available) { setSelectedEditionId(edition.id); setQuantity(1) } }}
                     className="nft-edition"
                   >
-                    {edition.label}
+                    {editionChipLabel(edition.label)}
                   </button>
                 ))}
               </div>
@@ -306,4 +306,9 @@ function RatingStars() {
       {Array.from({ length: 5 }, (_, index) => <Star key={index} />)}
     </span>
   )
+}
+
+function editionChipLabel(label: string) {
+  const compact = label.replace(/^(?:edition|edição|edicao)\s+/i, '').trim()
+  return /^(?:open(?:\s+edition)?|aberta)$/i.test(compact) ? 'ABERTA' : compact
 }
