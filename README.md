@@ -20,6 +20,8 @@ npm run build
 npm run preview
 ```
 
+O `.env.example` lista a variável da aplicação e os overrides opcionais das ferramentas. Para personalizar, copie-o para `.env.local`, ignorado pelo Git. Nunca coloque credenciais reais em variáveis `VITE_*`, que são públicas no bundle.
+
 ### Variáveis de ambiente
 
 | Variável | Valor | Uso |
@@ -52,7 +54,7 @@ O controle de cenário não faz parte da interface pública; use a URL ou os end
 
 ## Perfil e favoritos
 
-Após login, `/profile` permite editar nome, e-mail, bio, categorias favoritas e avatar PNG/JPEG/WebP de até 256 KB, além de alterar a senha informando a atual. As mudanças confirmadas permanecem após refresh. O botão de coração no catálogo e no detalhe salva favoritos por usuário. Para visitantes, ele abre o login e retoma a ação no NFT de origem. Os endpoints são `GET/PATCH /api/profile`, `POST /api/profile/password`, `GET /api/favorites` e `PUT/DELETE /api/favorites/:nftId`.
+Após login, `/profile` permite editar nome, e-mail, bio, categorias favoritas e avatar PNG/JPEG/WebP de até 256 KB, além de alterar a senha informando a atual. As mudanças confirmadas permanecem após refresh. O botão de coração no detalhe salva favoritos por usuário; a Home mobile oferece o painel de favoritos. Para visitantes, a ação do detalhe abre o login e retoma o NFT de origem. Os endpoints são `GET/PATCH /api/profile`, `POST /api/profile/password`, `GET /api/favorites` e `PUT/DELETE /api/favorites/:nftId`.
 
 Para reproduzir um rollback de favorito, entre em uma conta e execute no console antes de clicar no coração:
 
@@ -82,7 +84,7 @@ O carrinho e o catálogo se atualizam, e uma cotação anterior precisa ser refe
 
 ## Reproduzir checkout e falhas
 
-Adicione um NFT disponível, entre em uma conta e abra `/checkout`. O primeiro clique em **Confirmar compra** gera uma cotação para revisão; o segundo envia o pedido. Em **Cenário determinístico**, escolha confirmação, recusa, pendência, timeout antes/depois da criação, cotação expirada, preço alterado, NFT esgotado, sessão expirada ou erro HTTP 500. A tentativa e sua chave persistem após refresh. Os timeouts de criação falham na primeira chamada da tentativa; repetir a mesma tentativa ou recarregar permite recuperá-la. O pedido pendente evolui na API simulada e avisa o recibo por Socket.IO. Carteiras podem ser cadastradas, editadas, conectadas, desconectadas e promovidas a principais em `/wallets`.
+Adicione um NFT disponível, entre em uma conta e abra `/checkout`. O primeiro clique em **Confirmar compra** gera uma cotação para revisão; o segundo envia o pedido. No servidor de desenvolvimento, em viewport desktop, abra **Cenário determinístico** e escolha confirmação, recusa, pendência, timeout antes/depois da criação, cotação expirada, preço alterado, NFT esgotado, sessão expirada ou erro HTTP 500. Os controles técnicos ficam ocultos no mobile e no build de produção; os endpoints de cenário continuam disponíveis com MSW ativo. A tentativa e sua chave persistem após refresh. Os timeouts de criação falham na primeira chamada da tentativa; repetir a mesma tentativa ou recarregar permite recuperá-la. O pedido pendente evolui na API simulada e avisa o recibo por Socket.IO. Carteiras podem ser cadastradas, editadas, conectadas, desconectadas e promovidas a principais em `/wallets`.
 
 Os [contratos REST, política de idempotência e limitações](docs/etapa-6-checkout.md) estão documentados separadamente. A mudança de payload usando uma chave já usada devolve HTTP 409. Os testes de endpoint reproduzem esse conflito e conferem que pedidos não são duplicados.
 
@@ -118,13 +120,7 @@ npm run test -- auth-mobile
 npm run test -- catalog-pagination
 ```
 
-Na verificação desta configuração, **10 de 15 suítes passaram** (incluindo os 17 testes de API/estado). `npm run test` retorna falha nas cinco suítes antigas abaixo, que ainda usam seletores anteriores aos ajustes visuais:
-
-- `cart-browser.mjs`: procura o botão `Adicionar`, atualmente `COMPRAR`.
-- `cart-mobile-browser.mjs`: espera o título desktop `Confirmar compra` visível no checkout mobile, que agora usa `Pagamento com carteira`.
-- `checkout-browser.mjs`, `profile-favorites-browser.mjs` e `realtime-browser.mjs`: procuram a navegação `Navegacao principal`, enquanto o nome acessível atual é `Navegação principal`.
-
-Esses testes foram executados e mantidos sem alterações nesta tarefa de configuração. As falhas precisam ser tratadas antes de considerar a suíte completa aprovada; corrigir esses primeiros seletores pode revelar outras expectativas antigas.
+As cinco suítes antigas tiveram seus seletores atualizados, preservando verificações funcionais. A última execução completa aprovou **15/15 suítes**: 12 Playwright e 3 de API/estado (17 testes individuais de API), sem falhas ou testes ignorados. Isso não equivale a cobertura integral de cada requisito nem substitui regressão visual com baselines. O [relatório de revisão de entrega](docs/delivery-review.md) registra a validação de instalação limpa e as pendências do enunciado.
 
 Os comandos específicos `test:cart`, `test:checkout`, `test:profile` e `test:*:browser` continuam disponíveis. Os três primeiros dispensam navegador e servidor. Os comandos `test:*:browser` executados diretamente requerem um Vite já iniciado com mocks; a suíte de carrinho importa módulos por `/src` e precisa do servidor de desenvolvimento.
 
@@ -151,3 +147,11 @@ CHROME_PATH=/usr/bin/google-chrome npm run lighthouse
 A auditoria usa o **build de produção**, com MSW ativado pelo `.env`, e um preview em `http://127.0.0.1:<porta>/?scenario=normal`, em porta livre automaticamente. O perfil é mobile, headless, com throttling simulado e armazenamento limpo pelo Lighthouse; não usa o estado pessoal do navegador. São gerados `reports/lighthouse/home.report.html` e `reports/lighthouse/home.report.json`, sobrescritos na próxima execução e ignorados pelo Git. O comando falha em erros de execução; não impõe uma nota mínima. As notas podem variar conforme hardware, Chrome e carga da máquina. Para comparar resultados, use `npm ci`, a mesma versão do Chrome e o mesmo ambiente sem outros testes de navegador em paralelo.
 
 Essa auditoria cobre a Home pública. Não representa uma auditoria de todas as rotas autenticadas nem valida publicação/deploy ou equivalência visual completa ao Figma.
+
+### Entrega na Vercel
+
+O `vercel.json` já contém o fallback SPA `/(.*)` → `/index.html`, conforme a [orientação oficial para Vite](https://vercel.com/docs/frameworks/frontend/vite). Ele permite ao TanStack Router resolver URLs diretas e refresh de `/nft/:id`, `/cart`, `/checkout`, `/orders/:id`, `/profile` e `/wallets`.
+
+Configurações esperadas: preset **Vite**, instalação `npm ci`, build `npm run build`, saída `dist` e Node.js **24.x**. Mantenha `VITE_ENABLE_MOCKS=true` no ambiente de build da demonstração; `.env` já fornece esse padrão. Não é necessário backend, token de API nem conexão blockchain.
+
+Nenhum deploy é feito por esses comandos locais. Antes de enviar o desafio, registre a URL pública e o commit publicado, teste acesso direto/refresh das rotas, autenticação, compra e Socket.IO na hospedagem. A configuração local correta não comprova que uma versão publicada funciona.

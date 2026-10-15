@@ -1,5 +1,7 @@
 # Checklist de implementação — desafio Frontend
 
+> Atualização de entrega em 15/10/2026: o levantamento abaixo é histórico (14/10). Consulte a [revisão final](delivery-review.md) para o estado atual de instalação, 15 suítes, Lighthouse e deploy. A dependência Playwright e os comandos agora existem, os assets do Figma estão em `design-reference/` e as lacunas de evidência remanescentes não devem ser consideradas resolvidas apenas pela aprovação funcional.
+
 Fonte: [enunciado oficial](desafio-frontend.md), disponibilizado no projeto. Revisão em 14/10/2026. A classificação é por requisito identificável na fonte; há testes de carrinho, checkout, perfil, favoritos e tempo real em `tests/`. “Verificado” se restringe ao comportamento efetivamente exercitado por esses testes; existência de código isoladamente não comprova conclusão.
 
 Legenda: **CV** = concluído e verificado; **INV** = implementado, mas não verificado; **PI** = parcialmente implementado; **P** = pendente. São eliminatórios os seis pontos expressamente listados na seção 11 do enunciado. Cada grupo abaixo cita a seção correspondente.
