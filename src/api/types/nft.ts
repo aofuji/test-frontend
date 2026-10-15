@@ -27,6 +27,7 @@ export type Nft = {
   category: string
   chain: string
   priceEth: string
+  previousPriceEth?: string
   available: boolean
   images: NftImage[]
   editions: NftEdition[]

@@ -1,14 +1,6 @@
 import { Link } from '@tanstack/react-router'
-import { ArrowUpRight } from 'lucide-react'
 
 import type { MockScenario, Nft } from '@/api/types/nft'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Card,
-  CardContent,
-} from '@/components/ui/card'
-import { FavoriteButton } from './favorite-button'
 
 type NFTCardProps = {
   nft: Nft
@@ -17,37 +9,35 @@ type NFTCardProps = {
 
 export function NFTCard({ nft, scenario }: NFTCardProps) {
   return (
-    <Card className="group overflow-visible rounded-sm border-0 bg-transparent p-0 shadow-none">
-      <div className="relative overflow-hidden rounded-sm bg-card ring-1 ring-border/80">
-        <Link
-          to="/nft/$nftId"
-          params={{ nftId: nft.id }}
-          search={{ scenario }}
-          aria-label={`Abrir ${nft.name}`}
-          className="block aspect-square outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-        >
-          {nft.images[0] ? (
-            <img src={nft.images[0].src} alt={nft.images[0].alt} className="size-full object-cover transition duration-500 group-hover:scale-[1.035]" />
-          ) : (
-            <span className="grid size-full place-items-center text-sm text-muted-foreground">Imagem indisponível</span>
-          )}
-        </Link>
-        <span className="absolute left-3 top-3"><Badge variant={nft.available ? 'default' : 'secondary'}>{nft.available ? nft.chain : 'Vendido'}</Badge></span>
-        <span className="absolute right-3 top-3"><FavoriteButton nftId={nft.id} name={nft.name} /></span>
-      </div>
+    <article className="flex min-w-0 flex-col gap-2 text-left font-mono">
+      <Link
+        to="/nft/$nftId"
+        params={{ nftId: nft.id }}
+        search={{ scenario }}
+        aria-label={`Abrir ${nft.name}`}
+        className="flex aspect-[258/300] items-center bg-[#281914] p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
+      >
+        {nft.images[0] ? (
+          <img src={nft.images[0].src} alt={nft.images[0].alt} loading="lazy" className="aspect-square w-full rounded-2xl object-cover" />
+        ) : (
+          <span className="grid aspect-square w-full place-items-center rounded-2xl p-3 text-center text-sm text-muted-foreground">Imagem indisponível</span>
+        )}
+      </Link>
 
-      <CardContent className="flex items-start justify-between gap-3 px-0 pt-3">
-        <div className="min-w-0">
-          <h3 className="truncate text-sm font-semibold leading-5">{nft.name}</h3>
-          <p className="mt-1 truncate text-[11px] text-muted-foreground">{nft.creator}</p>
-          <p className="mt-1 font-mono text-sm font-bold text-primary">{nft.priceEth} ETH</p>
-        </div>
-        <Button asChild size="icon-sm" variant="ghost" className="rounded-sm text-primary">
-          <Link to="/nft/$nftId" params={{ nftId: nft.id }} search={{ scenario }} aria-label={`Detalhes de ${nft.name}`}>
-            <ArrowUpRight aria-hidden="true" />
-          </Link>
-        </Button>
-      </CardContent>
-    </Card>
+      <div className="min-w-0">
+        <h3 className="truncate text-sm font-normal leading-5 text-[#f5f1eb] sm:text-base">
+          <Link to="/nft/$nftId" params={{ nftId: nft.id }} search={{ scenario }} title={nft.name} className="outline-none hover:text-primary focus-visible:ring-2 focus-visible:ring-primary">{nft.name}</Link>
+        </h3>
+        <p className="flex flex-wrap items-baseline gap-x-3 text-base leading-6 sm:text-lg">
+          <span className="font-bold text-[#d28a4c]">{nft.priceEth} ETH</span>
+          {nft.previousPriceEth && Number(nft.previousPriceEth) > Number(nft.priceEth) ? (
+            <span className="font-normal text-[#b39463]">
+              <span className="sr-only">Preço anterior: </span>{nft.previousPriceEth} ETH
+            </span>
+          ) : null}
+        </p>
+        <span className="sr-only">{nft.available ? 'Disponível' : 'Vendido'} · {nft.chain} · {nft.creator}</span>
+      </div>
+    </article>
   )
 }

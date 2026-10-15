@@ -8,9 +8,9 @@ import {
 } from '@/components/ui/select'
 
 const sortOptions: Array<{ value: NftSortOption; label: string }> = [
-  { value: 'newest', label: 'Mais recentes' },
-  { value: 'price-asc', label: 'Menor preco' },
-  { value: 'price-desc', label: 'Maior preco' },
+  { value: 'newest', label: 'Listados recentemente' },
+  { value: 'price-asc', label: 'Menor preço' },
+  { value: 'price-desc', label: 'Maior preço' },
   { value: 'name-asc', label: 'Nome A-Z' },
 ]
 
@@ -21,13 +21,13 @@ type SortSelectProps = {
 
 export function SortSelect({ value, onChange }: SortSelectProps) {
   return (
-    <label className="grid gap-2 text-xs font-bold uppercase tracking-wide text-foreground">
-      Ordenacao
+    <div className="flex items-center justify-end font-mono text-xs font-normal leading-6 text-foreground sm:text-sm">
+      <span className="whitespace-nowrap">Ordenar por:</span>
       <Select value={value} onValueChange={(next) => onChange(next as NftSortOption)}>
-        <SelectTrigger className="w-full">
+        <SelectTrigger aria-label="Ordenar por" className="gap-0 rounded-none border-0 p-0 font-normal shadow-none data-[size=default]:h-6">
           <SelectValue />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="font-mono">
           {sortOptions.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
@@ -35,6 +35,6 @@ export function SortSelect({ value, onChange }: SortSelectProps) {
           ))}
         </SelectContent>
       </Select>
-    </label>
+    </div>
   )
 }

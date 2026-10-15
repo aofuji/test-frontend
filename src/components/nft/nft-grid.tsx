@@ -8,7 +8,7 @@ type NFTGridProps = {
 
 export function NFTGrid({ nfts, scenario }: NFTGridProps) {
   return (
-    <div className="grid gap-x-4 gap-y-9 sm:grid-cols-2 xl:grid-cols-3">
+    <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-8 sm:gap-y-16 xl:grid-cols-3">
       {nfts.map((nft) => (
         <NFTCard key={nft.id} nft={nft} scenario={scenario} />
       ))}

@@ -57,6 +57,8 @@ const nftRecords: Array<Omit<Nft, 'images'>> = [
     category: 'generative',
     chain: 'ethereum',
     priceEth: '2.10',
+    // Valor ilustrativo para demonstrar o preço anterior no card do catálogo.
+    previousPriceEth: '2.29',
     available: false,
     editions: [
       { id: 'orbit-512-a', label: 'Edition 1/2', available: false },
