@@ -20,6 +20,14 @@ VITE_ENABLE_MOCKS=true npm run build
 npm run preview
 ```
 
+### Variáveis de ambiente
+
+| Variável | Valor | Uso |
+| --- | --- | --- |
+| `VITE_ENABLE_MOCKS` | `true` | Ativa os handlers MSW no desenvolvimento e no build de demonstração. |
+
+Não há chaves externas nem serviços obrigatórios. Sem `VITE_ENABLE_MOCKS=true`, a aplicação não inicia a camada REST simulada.
+
 As contas fictícias são `ada@example.com` / `collector123` e `bruno@example.com` / `vault1234`. O cadastro também aceita novos usuários. O estado simulado é persistido no `localStorage` deste navegador; para voltar às fixtures iniciais, execute no console da aplicação:
 
 ```js
@@ -28,6 +36,19 @@ location.reload()
 ```
 
 Esse reset limpa sessões, perfis, favoritos, NFTs alterados, carrinhos, cotações, carteiras, pedidos, conexões de teste e a tentativa de checkout. É uma rota de demonstração, não uma API de produção.
+
+### Seleção de cenários
+
+Os cenários de catálogo são mantidos no parâmetro `scenario` da URL. Exemplos:
+
+```text
+/?scenario=normal
+/?scenario=latency
+/?scenario=error
+/?scenario=empty
+```
+
+O controle de cenário não faz parte da interface pública; use a URL ou os endpoints de demonstração descritos abaixo. Carrinho e checkout possuem cenários próprios documentados nas seções correspondentes.
 
 ## Perfil e favoritos
 
@@ -80,6 +101,8 @@ npm run test:checkout:browser
 npm run test:realtime:browser
 git diff --check
 ```
+
+Os comandos de navegador requerem um Chromium e uma instalação externa do Playwright. Quando necessário, informe `PLAYWRIGHT_MODULE`, `CHROME_PATH` e a URL do servidor (`PROFILE_TEST_URL`, `CHECKOUT_TEST_URL` ou `REALTIME_TEST_URL`).
 
 Com Vite iniciado com mocks, `npm run test:profile:browser` testa perfil, favoritos, destaques, galeria, URL, paginação, histórico, teclado, foco, reflow e movimento reduzido. `npm run test:cart:browser` testa o carrinho e requer o servidor de desenvolvimento, pois importa o `queryClient` por `/src`. As suítes de checkout e tempo real também funcionam no preview com `CHECKOUT_TEST_URL` e `REALTIME_TEST_URL`; a suíte nova aceita `PROFILE_TEST_URL`. Playwright não está no `package.json` atual: os scripts usam uma instalação acessível via `PLAYWRIGHT_MODULE`, o Chrome indicado por `CHROME_PATH` e a URL opcional de cada suíte. A ausência dessa dependência declarada e da suíte E2E completa é uma pendência do [checklist](docs/implementation-checklist.md).
 
