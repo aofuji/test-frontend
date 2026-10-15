@@ -66,7 +66,7 @@ try {
     await page.setViewportSize({ width, height: 844 })
     assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `Overflow at ${width}px`)
     const first = await cards.nth(0).boundingBox(), second = await cards.nth(1).boundingBox()
-    assert.equal(first.y, second.y, 'Mobile must retain two columns')
+    assert.equal((await cards.nth(2).boundingBox()).x, first.x, 'Mobile must retain two columns')
     assert(second.x > first.x)
   }
   console.log('PASS nine-item pagination, three desktop rows, unique NFTs, page totals, refresh/history, filter reset, price filtering, header search and mobile layout')

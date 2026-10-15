@@ -1,4 +1,4 @@
-import { Link, createFileRoute } from '@tanstack/react-router'
+import { Link, createFileRoute, useLocation } from '@tanstack/react-router'
 
 import { ArrowRight,  RotateCcw} from 'lucide-react'
 
@@ -35,6 +35,9 @@ import { SortSelect } from '@/components/catalog/sort-select'
 
 import { NFTGrid } from '@/components/nft/nft-grid'
 import { MintingDiary } from '@/components/home/minting-diary'
+import { HomeMobilePanel } from '@/components/home/home-mobile-panel'
+import { useFavorites } from '@/api/hooks/useFavorites'
+import { useSession } from '@/api/hooks/useAuth'
 
 import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
 
@@ -70,6 +73,11 @@ function HomePage() {
   const search = Route.useSearch()
 
   const navigate = Route.useNavigate()
+  const hash = useLocation({ select: (location) => location.hash })
+  const session = useSession()
+  const favorites = useFavorites()
+  const [mobileLayout, setMobileLayout] = useState(() => window.matchMedia('(max-width: 639px)').matches)
+
 
   const [filtersOpen, setFiltersOpen] = useState(() => window.matchMedia('(min-width: 64rem)').matches)
 
@@ -114,11 +122,13 @@ function HomePage() {
 
     const desktop = window.matchMedia('(min-width: 64rem)')
 
-    const updateFilterVisibility = () => setFiltersOpen(desktop.matches)
+    const mobile = window.matchMedia('(max-width: 639px)')
+    const updateFilterVisibility = () => { setFiltersOpen(desktop.matches); setMobileLayout(mobile.matches) }
 
     desktop.addEventListener('change', updateFilterVisibility)
+    mobile.addEventListener('change', updateFilterVisibility)
 
-    return () => desktop.removeEventListener('change', updateFilterVisibility)
+    return () => { desktop.removeEventListener('change', updateFilterVisibility); mobile.removeEventListener('change', updateFilterVisibility) }
 
   }, [])
 
@@ -127,6 +137,7 @@ function HomePage() {
     void navigate({
 
       search: (previous) => ({ ...previous, ...patch, page: 1 }),
+      hash: mobileLayout && hash === 'filtros' ? 'filtros' : undefined,
 
     })
 
@@ -140,27 +151,30 @@ function HomePage() {
 
   const heroNft = featuredQuery.data?.items[0]
   const promotionalNft = featuredQuery.data?.items[1] ?? heroNft
+  const favoriteNfts = inventoryQuery.data?.filter((nft) => favorites.data?.includes(nft.id)) ?? []
 
   return (
 
     <div className="figma-home space-y-10 pb-8 sm:space-y-12">
 
-      <section aria-label="Apresentação da Kurio" className="relative grid items-start gap-6 py-3 lg:mx-2 lg:grid-cols-[minmax(0,1fr)_450px] lg:gap-8 lg:pb-0 lg:pt-[3px]">
-        <div className="min-w-0 lg:pl-10 lg:pt-10">
+      <section aria-label="Apresentação da Kurio" className="home-hero relative grid items-start gap-6 py-3 lg:mx-2 lg:grid-cols-[minmax(0,1fr)_450px] lg:gap-8 lg:pb-0 lg:pt-[3px]">
+        <div className="home-hero-copy min-w-0 lg:pl-10 lg:pt-10">
           <p className="mb-4 text-sm font-semibold tracking-[0.12em] text-[#f5f1eb]">Bem-vindo à Kurio</p>
           <h1 className="text-3xl font-bold uppercase leading-tight sm:text-4xl lg:text-4xl lg:leading-[1.6] xl:text-[44px]">
+            <span className="home-hero-mobile-title">Seja dono da cultura digital</span>
             <span className="block">Seja dono do futuro</span>
             <span className="block">da arte digital</span>
           </h1>
           <p className="mt-4 max-w-[550px] text-sm leading-6 text-[#b39463] lg:mt-0">
-            Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte digital rara, apoie artistas e tenha uma parte da cultura da internet.
+            <span className="home-hero-mobile-description">Descubra NFTs selecionados de criadores do mundo todo.</span>
+            <span className="home-hero-desktop-description">Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte digital rara, apoie artistas e tenha uma parte da cultura da internet.</span>
           </p>
           <Button asChild className="mt-8 h-10 w-[140px] rounded-md bg-[#d28a4c] px-7 text-sm font-bold uppercase text-[#190f0b] hover:bg-[#d28a4c]/90">
             <a href="#catalogo">Explorar</a>
           </Button>
         </div>
 
-        <div className="mx-auto w-full max-w-[450px] lg:justify-self-end">
+        <div className="home-hero-art mx-auto w-full max-w-[450px] lg:justify-self-end">
           {featuredQuery.isLoading ? <Skeleton className="aspect-square w-full rounded-3xl" /> : null}
           {heroNft ? (
             <Link
@@ -180,8 +194,10 @@ function HomePage() {
           ) : null}
         </div>
 
+        {promotionalNft?.images[0] ? <img src={promotionalNft.images[0].src} alt="" aria-hidden="true" className="home-hero-secondary" /> : null}
+
         {/* A referência define um único banner; os pontos são apenas decorativos. */}
-        <div aria-hidden="true" className="flex justify-center gap-2 lg:absolute lg:bottom-11 lg:left-[calc(50%+20px)] lg:-translate-x-1/2">
+        <div aria-hidden="true" className="home-hero-indicators flex justify-center gap-2 lg:absolute lg:bottom-11 lg:left-[calc(50%+20px)] lg:-translate-x-1/2">
           <span className="size-2 rounded-full bg-[#d28a4c]" />
           <span className="size-2 rounded-full bg-[#d28a4c]" />
           <span className="size-2 rounded-full bg-[#d28a4c]" />
@@ -190,18 +206,18 @@ function HomePage() {
 
       <section id="catalogo" aria-label="Catálogo de NFTs" className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-7 scroll-mt-24 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[310px_minmax(0,1fr)] xl:gap-x-12">
 
-          <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between lg:col-start-2">
+          <div className="home-catalog-tools flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between lg:col-start-2">
             <div className="flex items-center gap-4 overflow-x-auto text-xs font-normal leading-6 sm:text-sm" aria-label="Visualização do catálogo">
               <button type="button" className={search.availability === 'all' && search.sort === 'newest' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ availability: 'all', sort: 'newest' })}>Todos os NFTs</button>
               <button type="button" className={search.sort === 'newest' && search.availability !== 'all' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'newest' })}>Novos lançamentos</button>
               <button type="button" className={search.sort === 'price-desc' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'price-desc' })}>Em alta</button>
             </div>
-            <div className="self-end sm:shrink-0">
+            <div className="home-catalog-sort self-end sm:shrink-0">
               <SortSelect value={search.sort} onChange={(sort) => updateFilters({ sort })} />
             </div>
           </div>
 
-          <aside aria-label="Filtros do catálogo" className="min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2">
+          <aside aria-label="Filtros do catálogo" className="home-catalog-sidebar min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2">
 
             <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group bg-[#281914] p-4 lg:p-5">
 
@@ -215,7 +231,7 @@ function HomePage() {
 
               <div className="mt-5 border-t border-border pt-5 lg:mt-0 lg:border-0 lg:pt-0">
 
-                <FilterPanel value={search} onChange={updateFilters} items={inventoryQuery.data ?? []} loading={inventoryQuery.isPending} error={inventoryQuery.isError} onRetry={() => void inventoryQuery.refetch()} />
+                {!mobileLayout ? <FilterPanel value={search} onChange={updateFilters} items={inventoryQuery.data ?? []} loading={inventoryQuery.isPending} error={inventoryQuery.isError} onRetry={() => void inventoryQuery.refetch()} /> : null}
 
               </div>
 
@@ -237,7 +253,7 @@ function HomePage() {
 
           </aside>
 
-          <div className="grid min-w-0 gap-5 lg:col-start-2 lg:row-start-2">
+          <div className="home-catalog-results grid min-w-0 gap-5 lg:col-start-2 lg:row-start-2">
 
             <div role="status" className="sr-only">
 
@@ -286,6 +302,23 @@ function HomePage() {
       ) : null}
 
       <MintingDiary />
+      {mobileLayout ? (
+        <>
+          <HomeMobilePanel open={hash === 'filtros'} onClose={() => void navigate({ search: (previous) => previous, hash: '', replace: true })} title="Filtros e ordenação" triggerId="home-mobile-filters">
+            <div className="mb-6"><SortSelect value={search.sort} onChange={(sort) => updateFilters({ sort })} /></div>
+            <FilterPanel value={search} onChange={updateFilters} items={inventoryQuery.data ?? []} loading={inventoryQuery.isPending} error={inventoryQuery.isError} onRetry={() => void inventoryQuery.refetch()} />
+          </HomeMobilePanel>
+          <HomeMobilePanel open={hash === 'favoritos'} onClose={() => void navigate({ search: (previous) => previous, hash: '', replace: true })} title="Favoritos" triggerId="home-mobile-favorites">
+            {session.isPending || (session.data && (favorites.isPending || inventoryQuery.isPending)) ? <LoadingSkeleton count={2} /> : null}
+            {!session.isPending && !session.data ? <p className="text-sm">Entre para acessar seus favoritos. <Link to="/login" search={{ redirect: '/#favoritos' }} className="text-primary underline">Entrar</Link></p> : null}
+            {session.data && (favorites.isError || inventoryQuery.isError) ? <p role="alert" className="text-sm">Não foi possível carregar os favoritos. <button type="button" className="underline" onClick={() => { void favorites.refetch(); void inventoryQuery.refetch() }}>Tentar novamente</button></p> : null}
+            {session.data && favorites.isSuccess && inventoryQuery.isSuccess ? (
+              favoriteNfts.length ? <NFTGrid nfts={favoriteNfts} scenario={search.scenario} /> : <p className="text-sm text-muted-foreground">Você ainda não tem NFTs favoritos. Use o coração nos detalhes de um NFT para salvá-lo.</p>
+            ) : null}
+          </HomeMobilePanel>
+        </>
+      ) : null}
+
 
     </div>
 

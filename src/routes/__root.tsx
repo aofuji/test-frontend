@@ -10,6 +10,7 @@ import {
 import {
   Search,
   ShoppingCart,
+  SlidersHorizontal,
   UserRound,
   X,
 } from "lucide-react";
@@ -27,6 +28,8 @@ import type { RouterContext } from "@/router";
 import { useRealtime } from "@/realtime/useRealtime";
 import "../App.css";
 import { Footer } from "@/components/layout/footer";
+import { HomeMobileNav } from "@/components/home/home-mobile-nav";
+import "@/components/home/home-mobile.css";
 
 function RootLayout() {
   const sessionQuery = useSession();
@@ -34,16 +37,19 @@ function RootLayout() {
   useRealtime(sessionQuery.data?.user.id ?? null);
   const navigate = useNavigate();
   const pathname = useLocation({ select: (location) => location.pathname }).replace(/\/+$/, "") || "/";
+  const isHome = pathname === "/";
+  const locationHash = useLocation({ select: (location) => location.hash });
   const marketActive = pathname === "/cart" || pathname === "/checkout" || /^\/(nft|orders)(\/|$)/.test(pathname);
   const homeActive = pathname === "/" || pathname === "/profile" || pathname === "/wallets";
   const search = useSearch({ strict: false });
   const [searchOpen, setSearchOpen] = useState(false);
-  const [searchDraft, setSearchDraft] = useState("");
+  const [searchDraft, setSearchDraft] = useState<string | null>(null);
   const searchTriggerRef = useRef<HTMLButtonElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   function closeSearch() {
     setSearchOpen(false);
+    setSearchDraft(null);
     searchTriggerRef.current?.focus({ preventScroll: true });
   }
 
@@ -51,7 +57,7 @@ function RootLayout() {
     event.preventDefault();
     await navigate({
       to: "/",
-      search: (previous) => ({ ...defaultCatalogSearch, ...previous, q: searchDraft.trim() || undefined, page: 1 }),
+      search: (previous) => ({ ...defaultCatalogSearch, ...previous, q: (searchDraft ?? search.q ?? "").trim() || undefined, page: 1 }),
       hash: "catalogo",
     });
     closeSearch();
@@ -91,9 +97,9 @@ function RootLayout() {
   }, [authModal]);
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
+    <div className={`min-h-svh bg-background text-foreground${isHome ? " kurio-home-route" : ""}`}>
       <header className="sticky top-0 z-30 border-b border-[#3b2922] bg-[#1b1512]/95 font-mono text-[#f5ede7] backdrop-blur">
-        <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8">
+        <div className="desktop-header-row mx-auto flex min-h-16 max-w-7xl items-center gap-4 overflow-x-auto px-4 sm:px-6 lg:px-8">
           <Link
             to="/"
             search={defaultCatalogSearch}
@@ -143,6 +149,16 @@ function RootLayout() {
             )}
           </div>
         </div>
+        {isHome ? (
+          <form role="search" aria-label="Busca mobile de NFTs" className="home-mobile-search" onSubmit={(event) => void submitSearch(event)}>
+            <div className="home-mobile-search-field">
+              <button type="submit" aria-label="Aplicar busca mobile"><Search aria-hidden="true" /></button>
+              <label htmlFor="home-mobile-search-input" className="sr-only">Buscar NFTs pelo nome</label>
+              <Input id="home-mobile-search-input" type="search" enterKeyHint="search" placeholder="Explorar coleções" value={searchDraft ?? search.q ?? ""} onChange={(event) => setSearchDraft(event.currentTarget.value)} onKeyDown={(event) => { if (event.key === "Escape") { setSearchDraft(null); event.currentTarget.blur(); } }} />
+            </div>
+            <button id="home-mobile-filters" type="button" className="home-mobile-filter-button" aria-label="Abrir filtros" aria-haspopup="dialog" aria-expanded={locationHash === "filtros"} aria-controls="home-mobile-filters-panel" onClick={() => void navigate({ to: "/", search: (previous) => ({ ...defaultCatalogSearch, ...previous }), hash: "filtros" })}><SlidersHorizontal aria-hidden="true" /></button>
+          </form>
+        ) : null}
         {searchOpen ? (
           <form
             id="catalog-search"
@@ -164,7 +180,7 @@ function RootLayout() {
                 id="catalog-search-input"
                 type="search"
                 enterKeyHint="search"
-                value={searchDraft}
+                value={searchDraft ?? search.q ?? ""}
                 onChange={(event) => setSearchDraft(event.currentTarget.value)}
                 placeholder="Buscar NFTs pelo nome"
                 className="h-10 min-w-0 flex-1 rounded-sm border-primary/25 bg-card"
@@ -185,6 +201,7 @@ function RootLayout() {
       </main>
 
       <Footer/>
+      {isHome ? <HomeMobileNav authenticated={Boolean(sessionQuery.data)} cartCount={cartCount} favoritesOpen={locationHash === "favoritos"} /> : null}
       {authModal ? <AuthDialog mode={authModal} onModeChange={setAuthModal} onClose={closeAuthModal} /> : null}
     </div>
   );
