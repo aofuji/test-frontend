@@ -1,6 +1,6 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
-import { CircleAlert, CircleCheck, Clock3 } from 'lucide-react'
+import { CircleAlert, CircleCheck, Clock3, MailCheck, X } from 'lucide-react'
 
 import { useOrder } from '@/api/hooks/useOrders'
 import { useSession } from '@/api/hooks/useAuth'
@@ -11,12 +11,10 @@ import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
+
+import './order-receipt.css'
 
 const orderImageByNftId: Record<string, string> = {
   'aurora-001': '/images/nfts/nft1.png', 'block-bloom-155': '/images/nfts/nft1.png',
@@ -77,97 +75,68 @@ function OrderDetailsPage() {
     )
   }
 
-  return (
-    <section className="space-y-7">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
-            Pedido
-          </p>
-          <h1 className="break-all text-3xl font-semibold tracking-tight sm:text-4xl">
-            {order.id}
-          </h1>
-        </div>
-        <StatusBadge status={order.status} />
-      </div>
+  const ReceiptIcon = order.status === 'confirmed' ? MailCheck : order.status === 'declined' ? CircleAlert : Clock3
 
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <Card className="rounded-sm border-border/80 bg-card/80 shadow-none">
-          <CardHeader className="p-5 pb-3">
-            <CardTitle className="text-lg">NFTs comprados</CardTitle>
-            <CardDescription>
-              Snapshot imutavel gerado no momento da compra.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 p-5 pt-0">
+  return (
+    <section className="order-receipt-page">
+      <article className="order-receipt" aria-labelledby="order-receipt-heading">
+        <Link to="/" search={catalogSearch} className="order-receipt-close" aria-label="Fechar recibo">
+          <X aria-hidden="true" />
+        </Link>
+        <header className="order-receipt-header">
+          <ReceiptIcon className="order-receipt-icon" aria-hidden="true" />
+          <h1 id="order-receipt-heading">
+            {order.status === 'confirmed' ? 'Seus NFTs agora estão na sua carteira' : order.status === 'declined' ? 'Não foi possível confirmar sua compra' : 'Seu pedido está aguardando confirmação'}
+          </h1>
+          <div className="order-receipt-reference">
+            <StatusBadge status={order.status} />
+            <span>Pedido {order.id}</span>
+          </div>
+        </header>
+
+        <dl className="order-receipt-strip">
+          <InfoRow label="ID da transação" value={order.transactionId ?? 'Não emitida'} />
+          <InfoRow label="Data" value={formatDate(order.createdAt)} />
+          <InfoRow label="Total" value={`${order.totals.totalEth} ETH`} />
+          <InfoRow label="Carteira" value={order.wallet.label} />
+        </dl>
+
+        <div className="order-receipt-body">
+          <h2 className="order-receipt-section-title">Detalhes da transação</h2>
+          <div className="order-receipt-columns" aria-hidden="true">
+            <span>NFTs</span><span>Edições</span><span>Subtotal</span>
+          </div>
+          <div className="order-receipt-items">
             {order.items.map((item) => (
-              <div key={item.id} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-3 rounded-sm border border-border/70 p-3">
-                <img src={orderImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" className="size-16 rounded-sm object-cover" />
-                <div className="grid gap-2">
-                <div className="flex items-start justify-between gap-4">
+              <div key={item.id} className="order-receipt-item">
+                <div className="order-receipt-item-info">
+                  <img src={orderImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" />
                   <div>
-                    <h2 className="font-semibold">{item.name}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {item.collection} - {item.editionLabel}
-                    </p>
+                    <h3>{item.name}</h3>
+                    <p>{item.editionLabel} · {item.chain}</p>
+                    <span className="sr-only">{item.collection}. Unitário: {item.unitPriceEth} ETH.</span>
                   </div>
-                  <Badge variant="outline">{item.chain}</Badge>
                 </div>
-                <div className="grid gap-1 text-sm text-muted-foreground sm:grid-cols-3">
-                  <span>Quantidade: {item.quantity}</span>
-                  <span>Unitario: {item.unitPriceEth} ETH</span>
-                  <span>Total: {item.lineTotalEth} ETH</span>
-                </div>
-                </div>
+                <span className="order-receipt-quantity"><span className="sr-only">Quantidade: </span>(× {item.quantity})</span>
+                <span className="order-receipt-line-total">{item.lineTotalEth} ETH</span>
               </div>
             ))}
-          </CardContent>
-        </Card>
-
-        <Card className="self-start rounded-sm border-border/80 bg-card/80 shadow-none lg:sticky lg:top-24">
-          <CardHeader className="p-5 pb-3">
-            <CardTitle className="text-lg">Recibo</CardTitle>
-            <CardDescription>
-              Confirmacao exibida apenas a partir do estado retornado pela API.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 p-5 pt-0">
-            <div className="space-y-2 text-sm">
-              <InfoRow label="Pagamento" value={statusLabel(order.status)} />
-              <InfoRow
-                label="Transacao"
-                value={order.transactionId ?? 'Nao emitida'}
-              />
-              <InfoRow label="Carteira" value={order.wallet.label} />
-              <InfoRow label="Rede" value={order.network} />
-              <InfoRow label="Criado em" value={formatDate(order.createdAt)} />
-            </div>
-            {order.failureReason ? (
-              <p className="rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-                {order.failureReason}
-              </p>
-            ) : null}
-            <Separator />
-            <dl className="grid gap-2 text-sm">
-              <InfoRow label="Subtotal" value={`${order.totals.subtotalEth} ETH`} />
-              <InfoRow
-                label="Desconto"
-                value={`-${order.totals.discountEth} ETH`}
-              />
-              <InfoRow
-                label="Taxa de rede"
-                value={`${order.totals.networkFeeEth} ETH`}
-              />
-              <InfoRow label="Total" value={`${order.totals.totalEth} ETH`} strong />
-            </dl>
-            <Button asChild variant="outline" className="w-full">
-              <Link to="/" search={{ availability: 'all', sort: 'newest', page: 1, scenario: 'normal' }}>
-                Voltar ao catalogo
-              </Link>
+          </div>
+          {order.failureReason ? <p className="order-receipt-failure" role="alert">{order.failureReason}</p> : null}
+          <dl className="order-receipt-totals">
+            <InfoRow label="Subtotal" value={`${order.totals.subtotalEth} ETH`} />
+            <InfoRow label="Desconto" value={`-${order.totals.discountEth} ETH`} />
+            <InfoRow label="Taxa de rede" value={`${order.totals.networkFeeEth} ETH`} />
+            <InfoRow label="Total" value={`${order.totals.totalEth} ETH`} strong />
+          </dl>
+          <footer className="order-receipt-footer">
+            <p>Rede: {order.network}.</p>
+            <Button asChild>
+              <Link to="/" search={catalogSearch}>Fechar recibo e voltar ao catálogo</Link>
             </Button>
-          </CardContent>
-        </Card>
-      </div>
+          </footer>
+        </div>
+      </article>
     </section>
   )
 }
@@ -194,11 +163,9 @@ function InfoRow({
   strong?: boolean
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className={strong ? 'text-lg font-semibold' : 'break-all font-medium'}>
-        {value}
-      </dd>
+    <div className={`order-receipt-info${strong ? ' order-receipt-info-strong' : ''}`}>
+      <dt>{label}</dt>
+      <dd title={value}>{value}</dd>
     </div>
   )
 }
@@ -232,3 +199,10 @@ export const Route = createFileRoute('/orders/$orderId')({
   beforeLoad: ({ context, location }) => context.auth.ensureSession(location),
   component: OrderDetailsPage,
 })
+
+const catalogSearch = {
+  availability: 'all',
+  sort: 'newest',
+  page: 1,
+  scenario: 'normal',
+} as const
