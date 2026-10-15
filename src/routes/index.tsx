@@ -231,11 +231,9 @@ function HomePage() {
 
       </section>
 
-      <section id="catalogo" aria-labelledby="catalog-heading" className="scroll-mt-24 space-y-7">
+      <section id="catalogo" aria-label="Catálogo de NFTs" className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-7 scroll-mt-24 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]">
 
-        <div className="space-y-4">
-          <SectionHeading eyebrow="Mercado" title="Explore a coleção" id="catalog-heading" />
-          <div className="flex flex-col gap-3 border-b border-border pb-2 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex min-w-0 flex-col gap-3 border-b border-border pb-2 sm:flex-row sm:items-end sm:justify-between lg:col-start-2">
             <div className="flex items-center gap-4 overflow-x-auto text-xs font-semibold" aria-label="Visualização do catálogo">
               <button type="button" className={search.availability === 'all' && search.sort === 'newest' ? 'whitespace-nowrap border-b-2 border-primary pb-2 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-2 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ availability: 'all', sort: 'newest' })}>Todos os NFTs</button>
               <button type="button" className={search.sort === 'newest' && search.availability !== 'all' ? 'whitespace-nowrap border-b-2 border-primary pb-2 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-2 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'newest' })}>Novos lançamentos</button>
@@ -245,11 +243,8 @@ function HomePage() {
               <SortSelect value={search.sort} onChange={(sort) => updateFilters({ sort })} />
             </div>
           </div>
-        </div>
 
-        <div className="grid items-start gap-8 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]">
-
-          <aside aria-label="Filtros do catálogo" className="lg:sticky lg:top-20">
+          <aside aria-label="Filtros do catálogo" className="lg:sticky lg:top-20 lg:col-start-1 lg:row-start-1 lg:row-span-2">
 
             <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group rounded-sm border border-border/80 bg-card/80 p-4 lg:p-5">
 
@@ -279,11 +274,9 @@ function HomePage() {
 
           </aside>
 
-          <div className="min-w-0 space-y-5">
+          <div className="grid min-w-0 gap-5 lg:col-start-2 lg:row-start-2">
 
-            <div className="flex flex-col justify-between gap-2 border-b border-border pb-3 text-xs text-muted-foreground sm:flex-row sm:items-center">
-
-              <span className="font-semibold text-foreground">Todos os NFTs</span>
+            <div role="status" className="sr-only">
 
               <span>
 
@@ -314,8 +307,6 @@ function HomePage() {
             ) : null}
 
           </div>
-
-        </div>
 
       </section>
 
