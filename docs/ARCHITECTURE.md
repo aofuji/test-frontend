@@ -4,7 +4,7 @@ O aplicativo usa React e TypeScript com Vite. TanStack Router mantém rotas púb
 
 O [enunciado oficial](desafio-frontend.md) é a fonte dos requisitos. O [checklist](implementation-checklist.md) mostra o progresso e as pendências. Os contratos e as decisões de checkout, carteiras e pedidos estão detalhados em [Etapa 6](etapa-6-checkout.md). A política de carrinho e os testes executados na etapa anterior constam de [Etapa 5](etapa-5-review.md).
 
-Os mocks persistem sessão, perfil, favoritos, NFTs alterados, carrinho, carteiras e pedidos no `localStorage`, separados por usuário quando privados. A camada MSW é a autoridade para preços, totais, cotações, estados de pagamento e idempotência; os componentes exibem a resposta e invalidam as consultas relevantes. A conexão REST é simulada; não há blockchain nem gateway real. O Figma não está disponível no projeto, portanto diferenças visuais em relação aos frames oficiais não puderam ser avaliadas.
+Os mocks persistem sessão, perfil, favoritos, NFTs alterados, carrinho, carteiras e pedidos no `localStorage`, separados por usuário quando privados. A camada MSW é a autoridade para preços, totais, cotações, estados de pagamento e idempotência; os componentes exibem a resposta e invalidam as consultas relevantes. A conexão REST é simulada; não há blockchain nem gateway real. As comparações visuais usam as referências locais em `design-reference/figma-layout.png`, `design-reference/Desktop/` e `design-reference/Mobile/`; os exports estáticos não comprovam interações do protótipo original.
 
 ## Busca de NFTs pelo header
 
@@ -23,6 +23,16 @@ A verificação no navegador cobriu foco automático, envio por Enter, preserva�
 `GET /api/favorites`, `PUT /api/favorites/:nftId` e `DELETE /api/favorites/:nftId` exigem sessão e usam armazenamento separado por ID de usuário. O botão no catálogo/detalhe mantém a intenção em `sessionStorage` enquanto encaminha o visitante ao login e a consome ao voltar. O cache TanStack Query usa chave por usuário; a mutation atualiza otimisticamente, restaura o snapshot se a API falhar e invalida a consulta ao terminar. Logout remove consultas privadas. `POST /api/__mock/favorites/fail-next` injeta um erro HTTP 500 ou falha de conexão apenas para teste, e o reset de mocks também limpa favoritos e intenção pendente.
 
 No detalhe, a edição selecionada determina a disponibilidade e o limite inteiro da quantidade. O carrinho e a API continuam aplicando a validação autoritativa. Skeletons dependentes de dados usam shimmer em CSS, interrompido por `prefers-reduced-motion`.
+
+## Hero e possibilidade de carrossel
+
+O frame de Início em `design-reference/figma-layout.png` mostra um banner e três pontos laranja iguais. A inspeção dos exports locais e dos assets disponíveis não identificou outros dois slides definidos, com imagens, textos e destinos próprios. A presença dos pontos sugere um carrossel, mas não confirma seu conteúdo nem seu comportamento. Os três NFTs retornados pela consulta de destaques também não definem, por si só, três banners do hero.
+
+Por isso, o hero em `src/routes/index.tsx` mantém um único banner, usando o primeiro NFT da consulta de destaques existente. Os pontos são decorativos, marcados com `aria-hidden="true"`, sem botões, estado ativo ou troca automática. O botão EXPLORAR continua levando a `#catalogo`, e a imagem mantém o link para os detalhes do NFT. Loading, erro e ausência de destaque continuam tratados. A imagem foi ajustada para 450 × 450 px no desktop, com adaptação à largura no mobile.
+
+Um carrossel funcional é tecnicamente viável sem nova biblioteca ou endpoint. Para implementá-lo, primeiro é necessário definir os slides ou aprovar explicitamente o uso dos NFTs de destaque como conteúdo do carrossel. Com esse conteúdo definido, a implementação pode reutilizar `featuredQuery`, manter apenas o índice ativo no estado local e gerar indicadores clicáveis a partir dos slides realmente disponíveis. Deve tratar respostas com menos itens, manter o índice válido quando os dados mudarem e preservar estados de carregamento, erro e vazio. Os controles devem ter nomes acessíveis, indicação do slide ativo e operação por teclado e toque. Essa evolução ainda não foi implementada; não há conteúdo adicional inventado para preencher os três pontos.
+
+A verificação do hero atual no navegador cobriu a imagem de 450 × 450 px, os três pontos decorativos, o link EXPLORAR e ausência de overflow nas larguras de 1024, 390 e 320 px. TypeScript e lint passaram.
 
 ## Destaques e galeria
 

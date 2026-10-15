@@ -149,86 +149,47 @@ function HomePage() {
 
     <div className="figma-home space-y-10 pb-8 sm:space-y-12">
 
-      <section className="grid items-center gap-6 py-3 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.72fr)] lg:gap-10 lg:py-5">
-
-        <div className="max-w-3xl space-y-4">
-
-          <p className="text-sm font-semibold tracking-[0.12em] text-muted-foreground">Bem-vindo à Kurio</p>
-
-          <h1 className="max-w-3xl text-3xl font-bold uppercase leading-[1.12] tracking-[0.025em] sm:text-4xl lg:text-5xl">
-
-            Seja dono do futuro da arte digital
-
+      <section aria-label="Apresentação da Kurio" className="relative grid items-start gap-6 py-3 lg:mx-2 lg:grid-cols-[minmax(0,1fr)_450px] lg:gap-8 lg:pb-0 lg:pt-[3px]">
+        <div className="min-w-0 lg:pl-10 lg:pt-10">
+          <p className="mb-4 text-sm font-semibold tracking-[0.12em] text-[#f5f1eb]">Bem-vindo à Kurio</p>
+          <h1 className="text-3xl font-bold uppercase leading-tight sm:text-4xl lg:text-4xl lg:leading-[1.6] xl:text-[44px]">
+            <span className="block">Seja dono do futuro</span>
+            <span className="block">da arte digital</span>
           </h1>
-
-          <p className="max-w-2xl text-sm leading-7 text-muted-foreground sm:text-base">
-
-            Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte digital rara, apoie artistas e faça parte da cultura da internet.
-
+          <p className="mt-4 max-w-[550px] text-sm leading-6 text-[#b39463] lg:mt-0">
+            Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte digital rara, apoie artistas e tenha uma parte da cultura da internet.
           </p>
-
-          <Button asChild size="lg" className="h-11 rounded-sm px-6 font-bold uppercase tracking-wide">
-
-            <a href="#catalogo">Explorar <ArrowRight aria-hidden="true" /></a>
-
+          <Button asChild className="mt-8 h-10 w-[140px] rounded-md bg-[#d28a4c] px-7 text-sm font-bold uppercase text-[#190f0b] hover:bg-[#d28a4c]/90">
+            <a href="#catalogo">Explorar</a>
           </Button>
-
         </div>
 
-        <div className="relative mx-auto w-full max-w-md lg:justify-self-end">
-
-          <span className="absolute -inset-3 -z-10 rounded-sm border border-primary/15 bg-primary/5" aria-hidden="true" />
-
-          {featuredQuery.isLoading ? <Skeleton className="aspect-square w-full rounded-sm" /> : null}
-
+        <div className="mx-auto w-full max-w-[450px] lg:justify-self-end">
+          {featuredQuery.isLoading ? <Skeleton className="aspect-square w-full rounded-3xl" /> : null}
           {heroNft ? (
-
             <Link
-
               to="/nft/$nftId"
-
               params={{ nftId: heroNft.id }}
-
               search={{ scenario: search.scenario }}
-
               aria-label={`Explorar ${heroNft.name}`}
-
-              className="group relative block aspect-square overflow-hidden rounded-sm bg-card outline-none ring-1 ring-primary/20 focus-visible:ring-2 focus-visible:ring-primary"
-
+              className="block aspect-square overflow-hidden rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
-
-              <img src={heroNft.images[0]?.src} alt={heroNft.images[0]?.alt ?? `Imagem de ${heroNft.name}`} className="size-full object-cover transition duration-500 group-hover:scale-[1.025]" />
-
-              <span className="absolute inset-x-0 bottom-0 flex items-end justify-between gap-4 bg-gradient-to-t from-background via-background/80 to-transparent p-5 pt-20">
-
-                <span>
-
-                  <span className="block text-sm font-semibold">{heroNft.name}</span>
-
-                  <span className="mt-1 block font-bold text-primary">{heroNft.priceEth} ETH</span>
-
-                </span>
-
-                <Badge variant={heroNft.available ? 'default' : 'secondary'}>{heroNft.available ? 'Disponível' : 'Vendido'}</Badge>
-
-              </span>
-
+              <img src={heroNft.images[0]?.src} alt={heroNft.images[0]?.alt ?? `Imagem de ${heroNft.name}`} className="size-full object-cover" />
             </Link>
-
           ) : null}
-
           {featuredQuery.isError || (featuredQuery.isSuccess && !heroNft) ? (
-
-            <div className="grid aspect-square place-items-center rounded-sm border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground">
-
+            <div className="grid aspect-square place-items-center rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground">
               A obra em destaque não está disponível neste momento.
-
             </div>
-
           ) : null}
-
         </div>
 
+        {/* A referência define um único banner; os pontos são apenas decorativos. */}
+        <div aria-hidden="true" className="flex justify-center gap-2 lg:absolute lg:bottom-11 lg:left-[calc(50%+20px)] lg:-translate-x-1/2">
+          <span className="size-2 rounded-full bg-[#d28a4c]" />
+          <span className="size-2 rounded-full bg-[#d28a4c]" />
+          <span className="size-2 rounded-full bg-[#d28a4c]" />
+        </div>
       </section>
 
       <section id="catalogo" aria-label="Catálogo de NFTs" className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-7 scroll-mt-24 lg:grid-cols-[13.5rem_minmax(0,1fr)] xl:grid-cols-[14.5rem_minmax(0,1fr)]">
