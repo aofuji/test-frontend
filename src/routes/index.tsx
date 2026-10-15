@@ -34,6 +34,7 @@ import { SortSelect } from '@/components/catalog/sort-select'
 
 
 import { NFTGrid } from '@/components/nft/nft-grid'
+import { MintingDiary } from '@/components/home/minting-diary'
 
 import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
 
@@ -107,13 +108,6 @@ function HomePage() {
 
     scenario: search.scenario,
 
-  })
-
-  const diaryQuery = useNfts({
-    page: 1,
-    pageSize: 4,
-    sort: 'newest',
-    scenario: search.scenario,
   })
 
   useEffect(() => {
@@ -291,71 +285,7 @@ function HomePage() {
 
       ) : null}
 
-      <section aria-labelledby="diario-heading" className="space-y-5">
-      <SectionHeading eyebrow="Editorial" title="Diário da Cunhagem" id="diario-heading" />
-      <p className="max-w-2xl text-xs leading-6 text-muted-foreground">
-        Histórias e obras da coleção para descobrir novos artistas.
-      </p>
-      {diaryQuery.isLoading ? <LoadingSkeleton count={4} /> : null}
-      {diaryQuery.isError ? (
-        <StateCard
-          title="Não foi possível carregar o diário"
-          description={diaryQuery.error.message}
-          action={<Button type="button" onClick={() => void diaryQuery.refetch()}><RotateCcw aria-hidden="true" />Tentar novamente</Button>}
-        />
-      ) : null}
-      {diaryQuery.isSuccess && diaryQuery.data.items.length === 0 ? (
-        <StateCard title="Nenhuma obra para apresentar" description="Explore o catálogo quando novas obras estiverem disponíveis." />
-      ) : null}
-      {diaryQuery.isSuccess && diaryQuery.data.items.length > 0 ? (
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-          {diaryQuery.data.items.slice(0, 4).map((nft) => (
-            <Link
-              key={nft.id}
-              to="/nft/$nftId"
-              params={{ nftId: nft.id }}
-              search={{ scenario: search.scenario }}
-              className="group block min-w-0 overflow-hidden rounded-sm border border-border bg-card outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              aria-label={`Ver obra ${nft.name} no Diário da Cunhagem`}
-            >
-              <div className="aspect-square overflow-hidden bg-muted">
-                {nft.images[0] ? (
-                  <img
-                    src={nft.images[0].src}
-                    alt={nft.images[0].alt}
-                    loading="lazy"
-                    className="size-full object-cover transition-transform duration-300 group-hover:scale-[1.025] motion-reduce:transition-none"
-                  />
-                ) : (
-                  <span className="grid size-full place-items-center p-3 text-center text-xs text-muted-foreground">Imagem indisponível</span>
-                )}
-              </div>
-              <div className="space-y-1 p-3">
-                <h3 className="truncate text-xs font-bold sm:text-sm">{nft.name}</h3>
-                <p className="truncate text-xs text-muted-foreground">Arte digital em destaque</p>
-                <p className="text-xs font-semibold text-primary">{nft.priceEth} ETH</p>
-              </div>
-            </Link>
-          ))}
-        </div>
-      ) : null}
-    </section>
-
-    </div>
-
-  )
-
-}
-
-function SectionHeading({ eyebrow, title, id }: { eyebrow: string; title: string; id: string }) {
-
-  return (
-
-    <div className="space-y-1">
-
-      <p className="text-xs font-bold uppercase tracking-[0.16em] text-primary">{eyebrow}</p>
-
-      <h2 id={id} className="text-xl font-bold uppercase tracking-wide sm:text-2xl">{title}</h2>
+      <MintingDiary />
 
     </div>
 
