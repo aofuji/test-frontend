@@ -2,6 +2,8 @@ import { Link, createFileRoute } from '@tanstack/react-router'
 import type { ReactNode } from 'react'
 
 import { RegisterForm } from '@/components/auth/auth-forms'
+import { AuthMobileBrand, AuthMobileSwitch, AuthSocialOptions } from '@/components/auth/auth-mobile'
+import { useMobileAuth } from '@/components/auth/use-mobile-auth'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 type RegisterSearch = {
@@ -10,17 +12,25 @@ type RegisterSearch = {
 
 function RegisterPage() {
   const { redirect } = Route.useSearch()
+  const mobile = useMobileAuth()
 
   return (
     <AuthShell eyebrow="Cadastro" title="Criar conta">
       <RegisterForm
         redirect={redirect}
+        withPasswordConfirmation={mobile}
+        submitLabel={mobile ? 'Criar perfil' : 'Criar conta'}
+        showSwitch={!mobile}
         switchAction={
           <Link to="/login" search={redirect ? { redirect } : {}} className="font-medium text-primary underline-offset-4 hover:underline">
             Entrar
           </Link>
         }
       />
+      <div className="auth-mobile-extras">
+        <AuthSocialOptions />
+        <AuthMobileSwitch register><Link to="/login" search={redirect ? { redirect } : {}}>Entre</Link></AuthMobileSwitch>
+      </div>
     </AuthShell>
   )
 }
@@ -34,11 +44,12 @@ export const Route = createFileRoute('/register')({
 
 function AuthShell({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
   return (
-    <section className="grid min-h-[65svh] place-items-center py-8">
+    <section className="auth-route auth-route-register grid min-h-[65svh] place-items-center py-8">
+      <AuthMobileBrand />
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
-          <CardTitle className="text-3xl">{title}</CardTitle>
+          <CardTitle className="text-3xl"><span className="auth-desktop-title">{title}</span><span className="auth-mobile-title">Criar perfil de colecionador</span></CardTitle>
         </CardHeader>
         <CardContent>{children}</CardContent>
       </Card>

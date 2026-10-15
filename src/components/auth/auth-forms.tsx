@@ -89,6 +89,7 @@ export function LoginForm({
         </div>
         <FieldError message={fieldErrors.password} />
       </div>
+      <button type="button" disabled className="auth-mobile-forgot" title="Recuperação de senha indisponível">Esqueceu a senha?</button>
       <Button className="h-11 w-full rounded-sm font-bold" type="submit" disabled={loginMutation.isPending}>
         {loginMutation.isPending ? 'Entrando...' : 'Entrar'}
       </Button>
@@ -109,7 +110,8 @@ export function RegisterForm({
   switchAction,
   showSwitch = true,
   withPasswordConfirmation = false,
-}: AuthFormOptions & { withPasswordConfirmation?: boolean }) {
+  submitLabel = 'Criar conta',
+}: AuthFormOptions & { withPasswordConfirmation?: boolean; submitLabel?: string }) {
   const registerMutation = useRegister()
   const [form, setForm] = useState<RegisterRequest>({ name: '', email: '', password: '' })
   const [confirmation, setConfirmation] = useState('')
@@ -173,7 +175,7 @@ export function RegisterForm({
         </label>
       )}
       <Button className="h-11 w-full rounded-sm font-bold" type="submit" disabled={registerMutation.isPending}>
-        {registerMutation.isPending ? 'Criando conta...' : 'Criar conta'}
+        {registerMutation.isPending ? 'Criando conta...' : submitLabel}
       </Button>
       {showSwitch ? (
         <p className="text-center text-sm text-muted-foreground">

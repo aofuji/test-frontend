@@ -1,0 +1,67 @@
+.auth-mobile-brand, .auth-mobile-title, .auth-mobile-extras, .auth-mobile-switch, .auth-mobile-forgot { display: none; }
+
+@media (max-width: 639px) {
+  #root > div:has(.auth-route, [data-login-dialog], [data-register-dialog]) > header,
+  #root > div:has(.auth-route, [data-login-dialog], [data-register-dialog]) > footer,
+  #root > div:has([data-login-dialog], [data-register-dialog]) .home-mobile-nav { display: none; }
+  #root > div > main:has(.auth-route) { padding: 8px; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) {
+    --primary: #d28a4c;
+    --primary-foreground: #190f0b;
+    --muted-foreground: #b39463;
+    color: #f5f1eb;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+  }
+  #root .auth-route {
+    display: block;
+    min-height: calc(100svh - 16px);
+    padding: clamp(72px, 14.5svh, 128px) 28px 28px;
+    border-radius: 44px;
+    background: #140d0a;
+  }
+  #root :is([data-login-dialog], [data-register-dialog]) { display: block; padding: 8px; background: #201c1a; }
+  #root :is([data-login-dialog], [data-register-dialog]) > [role='dialog'] {
+    min-height: calc(100svh - 16px);
+    max-width: 414px;
+    margin-inline: auto;
+    padding: clamp(72px, 14.5svh, 128px) 28px 28px;
+    border-radius: 44px;
+    background: #140d0a;
+    overflow: visible;
+  }
+  #root .auth-mobile-brand { display: block; margin: 0 0 80px; text-align: center; font-size: 34px; font-weight: 700; line-height: 42px; letter-spacing: 2px; }
+  #root .auth-route [data-slot='card'] { gap: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+  #root .auth-route [data-slot='card-header'] { display: block; padding: 0; }
+  #root .auth-route [data-slot='card-header'] > p { display: none; }
+  #root .auth-route [data-slot='card-content'] { padding: 0; }
+  #root .auth-route [data-slot='card-title'] { margin: 0 0 34px; text-align: center; font-family: inherit; font-size: 20px; font-weight: 700; line-height: 28px; }
+  #root .auth-route-register [data-slot='card-title'] { font-size: clamp(15px, 4.3vw, 18px); }
+  #root .auth-mobile-title { display: inline; }
+  #root .auth-desktop-title { display: none; }
+  #root :is([data-login-dialog], [data-register-dialog]) [role='dialog'] > div:first-of-type { padding: 0; }
+  #root :is([data-login-dialog], [data-register-dialog]) [role='tablist'],
+  #root :is([data-login-dialog], [data-register-dialog]) [role='tablist'] + h2 + p,
+  #root :is([data-login-dialog], [data-register-dialog]) [role='dialog'] > div:last-child { display: none; }
+  #root :is([data-login-dialog], [data-register-dialog]) #auth-modal-title { position: static; width: auto; height: auto; margin: 0 0 34px; overflow: visible; clip-path: none; white-space: normal; text-align: center; font-size: 20px; font-weight: 700; line-height: 28px; }
+  #root [data-register-dialog] #auth-modal-title { font-size: clamp(15px, 4.3vw, 18px); }
+  #root :is([data-login-dialog], [data-register-dialog]) [role='dialog'] > button { top: 20px; right: 20px; width: 36px; height: 36px; border: 1px solid #422d1e; border-radius: 50%; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) form { display: grid; width: 100%; gap: 12px; margin: 0; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) form > * { margin-block: 0; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) input {
+    height: 50px; min-width: 0; border: 1px solid #422d1e; border-radius: 10px; padding-inline: 16px; background: transparent; color: #f5f1eb; font-family: inherit; font-size: 16px; box-shadow: none;
+  }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) input::placeholder { color: #b39463; font-size: 14px; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) #auth-register-name { text-align: center; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) input:focus-visible { border-color: #d28a4c; outline: 1px solid #d28a4c; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) input[aria-invalid='true'] { border-color: var(--destructive); }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) input[autocomplete$='password'] { padding-right: 48px; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) .auth-password-toggle { position: absolute; inset: 0 0 0 auto; display: grid; width: 48px; place-items: center; color: #b39463; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) .auth-mobile-forgot { display: block; justify-self: end; color: #d28a4c; font-size: 13px; line-height: 20px; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) form > button[type='submit'] { height: 60px; margin-top: 28px; border-radius: 10px; background: #d28a4c; font-family: inherit; font-size: 16px; }
+  #root .auth-mobile-extras { display: block; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) .auth-social-separator { width: 100%; gap: 10px; margin: 40px 0 12px; color: #f5f1eb; font-size: 12px; line-height: 16px; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) .auth-social-buttons { width: 100%; gap: 16px; margin: 0; }
+  #root :is(.auth-route, [data-login-dialog], [data-register-dialog]) .auth-social-buttons > button { height: 40px; gap: 12px; border: 1px solid #422d1e; border-radius: 4px; background: transparent; color: #cfb28c; font-family: inherit; font-size: 12px; opacity: 1; }
+  #root .auth-mobile-switch { display: block; margin: 40px 0 0; color: #cfb28c; text-align: center; font-size: 13px; line-height: 22px; }
+  #root .auth-mobile-switch :is(a, button):focus-visible { outline: 2px solid #d28a4c; outline-offset: 4px; }
+}
