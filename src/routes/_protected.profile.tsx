@@ -9,6 +9,7 @@ import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { AccountLayout } from '@/components/account/account-layout'
 
 const categories = [
   { id: 'art', label: 'Arte' },
@@ -19,17 +20,17 @@ const categories = [
 
 function ProfilePage() {
   const query = useProfile()
-  if (query.isLoading) return <LoadingSkeleton variant="detail" />
+  if (query.isLoading) return <AccountLayout active="profile"><LoadingSkeleton variant="detail" /></AccountLayout>
   if (query.isError || !query.data) {
     const expired = query.error instanceof ApiError && query.error.status === 401
-    return <Card className="mx-auto max-w-xl"><CardContent className="space-y-4 p-6">
+    return <AccountLayout active="profile"><Card className="mx-auto max-w-xl"><CardContent className="space-y-4 p-6">
       <h1 className="text-2xl font-semibold">Nao foi possivel carregar o perfil</h1>
       <p role="alert">{query.error instanceof ApiError ? query.error.message : 'Tente novamente.'}</p>
       {expired ? <Button asChild><Link to="/login" search={{ redirect: '/profile' }}>Entrar novamente</Link></Button> : null}
       <Button variant="outline" onClick={() => void query.refetch()}><RotateCcw aria-hidden="true" /> Tentar novamente</Button>
-    </CardContent></Card>
+    </CardContent></Card></AccountLayout>
   }
-  return <ProfileContent key={query.data.id} profile={query.data} />
+  return <AccountLayout active="profile"><ProfileContent key={query.data.id} profile={query.data} /></AccountLayout>
 }
 
 function ProfileContent({ profile }: { profile: UserProfile }) {

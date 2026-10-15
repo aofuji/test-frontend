@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
+import { AccountLayout } from '@/components/account/account-layout'
 
 const emptyForm = {
   label: '',
@@ -81,15 +82,15 @@ function WalletsPage() {
 
   if (walletsQuery.isLoading) {
     return (
-      <section className="space-y-6">
+      <AccountLayout active="wallets"><section className="space-y-6">
         <Skeleton className="h-10 w-72" />
         <Skeleton className="h-80" />
-      </section>
+      </section></AccountLayout>
     )
   }
 
   return (
-    <section className="space-y-6">
+    <AccountLayout active="wallets"><section className="space-y-6">
       <div className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
           Carteiras
@@ -112,11 +113,11 @@ function WalletsPage() {
         </Card>
       ) : null}
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
         <div className="space-y-4">
           {(walletsQuery.data ?? []).map((wallet) => (
             <Card key={wallet.id}>
-              <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center">
+              <CardContent className="grid gap-4 p-5 sm:grid-cols-[3rem_minmax(0,1fr)] sm:items-start">
                 <div className="grid size-12 place-items-center rounded-2xl bg-primary text-primary-foreground">
                   <WalletCards aria-hidden="true" className="size-5" />
                 </div>
@@ -133,11 +134,11 @@ function WalletsPage() {
                       {wallet.status === 'connected' ? 'Conectada' : 'Desconectada'}
                     </Badge>
                   </div>
-                  <p className="break-all text-sm text-muted-foreground">
+                  <p className="break-words text-sm text-muted-foreground [overflow-wrap:anywhere]">
                     {wallet.address}
                   </p>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 sm:col-span-2">
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -295,7 +296,7 @@ function WalletsPage() {
           </CardContent>
         </Card>
       </div>
-    </section>
+    </section></AccountLayout>
   )
 }
 
