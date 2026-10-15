@@ -3,6 +3,8 @@ import {
   Outlet,
   createRootRouteWithContext,
   useNavigate,
+  useLocation,
+  useLinkProps,
   useSearch,
 } from "@tanstack/react-router";
 import {
@@ -11,7 +13,7 @@ import {
   UserRound,
   X,
 } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { FaFacebookF } from "react-icons/fa";
 import "@/components/auth/login-dialog.css";
@@ -31,6 +33,9 @@ function RootLayout() {
   const cartQuery = useCart();
   useRealtime(sessionQuery.data?.user.id ?? null);
   const navigate = useNavigate();
+  const pathname = useLocation({ select: (location) => location.pathname }).replace(/\/+$/, "") || "/";
+  const marketActive = pathname === "/cart" || pathname === "/checkout" || /^\/(nft|orders)(\/|$)/.test(pathname);
+  const homeActive = pathname === "/" || pathname === "/profile" || pathname === "/wallets";
   const search = useSearch({ strict: false });
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchDraft, setSearchDraft] = useState("");
@@ -100,8 +105,8 @@ function RootLayout() {
             className="mx-auto flex items-center gap-1 whitespace-nowrap"
             aria-label="Navegação principal"
           >
-            <Link to="/" search={defaultCatalogSearch} className="rounded-sm px-3 py-2 text-xs font-semibold text-[#d8c9c0] transition hover:text-primary focus-visible:ring-2 focus-visible:ring-primary" activeProps={{ className: "rounded-sm px-3 py-2 text-xs font-semibold text-primary focus-visible:ring-2 focus-visible:ring-primary" }}>Início</Link>
-            <Link to="/" search={defaultCatalogSearch} hash="catalogo" className="rounded-sm px-3 py-2 text-xs font-semibold text-[#d8c9c0] transition hover:text-primary focus-visible:ring-2 focus-visible:ring-primary">Mercado</Link>
+            <HeaderNavLink active={homeActive}>Início</HeaderNavLink>
+            <HeaderNavLink active={marketActive} hash="catalogo">Mercado</HeaderNavLink>
             <span className="cursor-pointer rounded-sm px-3 py-2 text-xs font-semibold text-[#d8c9c0] transition hover:text-primary" aria-disabled="true" title="Conteúdo em breve">Criadores</span>
             <span className="cursor-pointer rounded-sm px-3 py-2 text-xs font-semibold text-[#d8c9c0] transition hover:text-primary" aria-disabled="true" title="Conteúdo em breve">Aprenda</span>
           </nav>
@@ -182,6 +187,20 @@ function RootLayout() {
       <Footer/>
       {authModal ? <AuthDialog mode={authModal} onModeChange={setAuthModal} onClose={closeAuthModal} /> : null}
     </div>
+  );
+}
+
+function HeaderNavLink({ active, hash, children }: { active: boolean; hash?: string; children: ReactNode }) {
+  const linkProps = useLinkProps({ to: "/", search: defaultCatalogSearch, hash, activeProps: {} });
+  return (
+    <a
+      {...linkProps}
+      aria-current={active ? "page" : undefined}
+      data-status={active ? "active" : undefined}
+      className={`flex min-h-16 items-center border-b-2 px-3 py-2 text-xs font-semibold transition hover:text-primary focus-visible:ring-2 focus-visible:ring-primary ${active ? "border-[#d28a4c] text-[#d28a4c]" : "border-transparent text-[#d8c9c0]"}`}
+    >
+      {children}
+    </a>
   );
 }
 
