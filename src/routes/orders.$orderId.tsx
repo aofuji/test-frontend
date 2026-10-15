@@ -18,6 +18,13 @@ import {
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 
+const orderImageByNftId: Record<string, string> = {
+  'aurora-001': '/images/nfts/nft1.png', 'block-bloom-155': '/images/nfts/nft1.png',
+  'solar-thread-019': '/images/nfts/nft2.png', 'glass-house-071': '/images/nfts/nft2.png', 'mono-mask-008': '/images/nfts/nft2.png',
+  'orbit-512': '/images/nfts/nft3.png', 'vault-echo-300': '/images/nfts/nft3.png', 'byte-relic-009': '/images/nfts/nft3.png',
+  'neon-204': '/images/nfts/nft4.png', 'terra-117': '/images/nfts/nft4.png', 'pixel-reef-044': '/images/nfts/nft4.png', 'midnight-frame-026': '/images/nfts/nft4.png',
+}
+
 function OrderDetailsPage() {
   const { orderId } = Route.useParams()
   const orderQuery = useOrder(orderId)
@@ -71,30 +78,32 @@ function OrderDetailsPage() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-7">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
             Pedido
           </p>
-          <h1 className="break-all text-4xl font-semibold tracking-tight">
+          <h1 className="break-all text-3xl font-semibold tracking-tight sm:text-4xl">
             {order.id}
           </h1>
         </div>
         <StatusBadge status={order.status} />
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_360px]">
-        <Card>
-          <CardHeader>
-            <CardTitle>NFTs comprados</CardTitle>
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <Card className="rounded-sm border-border/80 bg-card/80 shadow-none">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="text-lg">NFTs comprados</CardTitle>
             <CardDescription>
               Snapshot imutavel gerado no momento da compra.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="space-y-3 p-5 pt-0">
             {order.items.map((item) => (
-              <div key={item.id} className="grid gap-2 rounded-lg border p-4">
+              <div key={item.id} className="grid grid-cols-[4rem_minmax(0,1fr)] gap-3 rounded-sm border border-border/70 p-3">
+                <img src={orderImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" className="size-16 rounded-sm object-cover" />
+                <div className="grid gap-2">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h2 className="font-semibold">{item.name}</h2>
@@ -109,19 +118,20 @@ function OrderDetailsPage() {
                   <span>Unitario: {item.unitPriceEth} ETH</span>
                   <span>Total: {item.lineTotalEth} ETH</span>
                 </div>
+                </div>
               </div>
             ))}
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Recibo</CardTitle>
+        <Card className="self-start rounded-sm border-border/80 bg-card/80 shadow-none lg:sticky lg:top-24">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="text-lg">Recibo</CardTitle>
             <CardDescription>
               Confirmacao exibida apenas a partir do estado retornado pela API.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-5 pt-0">
             <div className="space-y-2 text-sm">
               <InfoRow label="Pagamento" value={statusLabel(order.status)} />
               <InfoRow

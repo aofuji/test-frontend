@@ -68,13 +68,13 @@ function CartPage() {
   }
 
   return (
-    <section className="space-y-8" aria-busy={cartQuery.isFetching || isBusy}>
-      <div className="space-y-3">
+    <section className="space-y-7" aria-busy={cartQuery.isFetching || isBusy}>
+      <div className="space-y-2">
         <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
           Carrinho
         </p>
-        <h1 className="text-4xl font-semibold tracking-tight">
-          Revise seus NFTs selecionados.
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          Carrinho de NFTs
         </h1>
         <p className="max-w-2xl text-muted-foreground">
           Totais, descontos e taxa de rede sao calculados pela API simulada com
@@ -121,8 +121,8 @@ function CartPage() {
       ) : null}
 
       {cartQuery.isSuccess && cartQuery.data.items.length > 0 ? (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="space-y-4">
+        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="space-y-3">
             {cartQuery.data.items.map((item) => (
               <CartLineItem
                 key={item.id}
@@ -140,11 +140,11 @@ function CartPage() {
             ))}
           </div>
 
-          <Card className="self-start">
-            <CardHeader>
-              <CardTitle>Resumo</CardTitle>
+          <Card className="self-start rounded-sm border-border/80 bg-card/80 shadow-none">
+            <CardHeader className="p-5 pb-3">
+              <CardTitle className="text-lg">Resumo do pedido</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-5">
+            <CardContent className="space-y-4 p-5 pt-2">
               {mutationError ? (
                 <p role="alert" id="cart-mutation-error" className="rounded-lg border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive">
                   {mutationError.message}
@@ -240,6 +240,21 @@ type CartLineItemProps = {
   onRemove: () => void
 }
 
+const cartImageByNftId: Record<string, string> = {
+  'aurora-001': '/images/nfts/nft1.png',
+  'block-bloom-155': '/images/nfts/nft1.png',
+  'solar-thread-019': '/images/nfts/nft2.png',
+  'glass-house-071': '/images/nfts/nft2.png',
+  'mono-mask-008': '/images/nfts/nft2.png',
+  'orbit-512': '/images/nfts/nft3.png',
+  'vault-echo-300': '/images/nfts/nft3.png',
+  'byte-relic-009': '/images/nfts/nft3.png',
+  'neon-204': '/images/nfts/nft4.png',
+  'terra-117': '/images/nfts/nft4.png',
+  'pixel-reef-044': '/images/nfts/nft4.png',
+  'midnight-frame-026': '/images/nfts/nft4.png',
+}
+
 function CartLineItem({
   item,
   isUpdating,
@@ -247,13 +262,15 @@ function CartLineItem({
   onRemove,
 }: CartLineItemProps) {
   return (
-    <Card className={!item.available ? 'border-destructive/50' : undefined}>
-      <CardContent className="grid gap-4 p-5 sm:grid-cols-[120px_minmax(0,1fr)_auto]">
-        <div className="nft-art-surface aspect-square rounded-2xl from-zinc-950 via-violet-700 to-rose-300" />
-        <div className="min-w-0 space-y-3 break-words">
+    <Card className={!item.available ? 'rounded-sm border-destructive/50' : 'rounded-sm border-border/80 bg-card/80 shadow-none'}>
+      <CardContent className="grid gap-4 p-4 sm:grid-cols-[7rem_minmax(0,1fr)_auto] sm:items-center">
+        <div className="aspect-square overflow-hidden rounded-sm bg-muted">
+          <img src={cartImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt={item.name} className="size-full object-cover" />
+        </div>
+        <div className="min-w-0 space-y-2 break-words">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-xl font-semibold">{item.name}</h2>
+              <h2 className="text-base font-semibold">{item.name}</h2>
               <Badge variant={item.available ? 'default' : 'destructive'}>
                 {item.available ? 'Disponivel' : 'Indisponivel'}
               </Badge>
@@ -268,7 +285,7 @@ function CartLineItem({
           <p className="font-mono text-sm">{item.unitPriceEth} ETH / unidade</p>
         </div>
         <div className="flex items-center gap-2 sm:flex-col sm:items-end">
-          <div className="flex items-center rounded-lg border">
+          <div className="flex items-center rounded-sm border border-border">
             <Button
               type="button"
               variant="ghost"

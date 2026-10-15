@@ -36,6 +36,20 @@ import { nftNoticeEvent } from '@/realtime/useRealtime'
 import type { NftUpdatedEvent } from '@/api/types/realtime'
 
 const checkoutAttemptKey = 'nft-marketplace.checkout-attempt.v1'
+const checkoutImageByNftId: Record<string, string> = {
+  'aurora-001': '/images/nfts/nft1.png',
+  'block-bloom-155': '/images/nfts/nft1.png',
+  'solar-thread-019': '/images/nfts/nft2.png',
+  'glass-house-071': '/images/nfts/nft2.png',
+  'mono-mask-008': '/images/nfts/nft2.png',
+  'orbit-512': '/images/nfts/nft3.png',
+  'vault-echo-300': '/images/nfts/nft3.png',
+  'byte-relic-009': '/images/nfts/nft3.png',
+  'neon-204': '/images/nfts/nft4.png',
+  'terra-117': '/images/nfts/nft4.png',
+  'pixel-reef-044': '/images/nfts/nft4.png',
+  'midnight-frame-026': '/images/nfts/nft4.png',
+}
 
 type CheckoutAttempt = {
   userId: string
@@ -314,29 +328,29 @@ function CheckoutPage() {
   }
 
   return (
-    <section className="space-y-6">
+    <section className="space-y-7">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">
             Checkout
           </p>
-          <h1 className="text-4xl font-semibold tracking-tight">
+          <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
             Confirmar compra
           </h1>
         </div>
         <Badge variant="outline">Sessao ativa</Badge>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dados do colecionador</CardTitle>
+          <Card className="rounded-sm border-border/80 bg-card/80 shadow-none">
+            <CardHeader className="p-5 pb-3">
+              <CardTitle className="text-lg">Dados do colecionador</CardTitle>
               <CardDescription>
                 Conta autenticada usada para emitir o pedido simulado.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-2 text-sm">
+            <CardContent className="grid gap-2 p-5 pt-0 text-sm">
               <span className="font-medium">{sessionQuery.data?.user.name}</span>
               <span className="text-muted-foreground">
                 {sessionQuery.data?.user.email}
@@ -344,9 +358,9 @@ function CheckoutPage() {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+          <Card className="rounded-sm border-border/80 bg-card/80 shadow-none">
+            <CardHeader className="p-5 pb-3">
+              <CardTitle className="flex items-center gap-2 text-lg">
                 <WalletCards className="size-4" aria-hidden="true" />
                 Carteira e rede
               </CardTitle>
@@ -354,7 +368,7 @@ function CheckoutPage() {
                 Selecione uma carteira simulada conectada para esta compra.
               </CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-2">
+            <CardContent className="grid gap-4 p-5 pt-0 md:grid-cols-2">
               <label className="grid gap-2 text-sm font-medium">
                 Carteira
                 <Select
@@ -417,23 +431,28 @@ function CheckoutPage() {
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">
-                    Cadastre uma carteira para continuar.
-                  </p>
+                  <div className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Cadastre uma carteira para continuar.
+                    </p>
+                    <Button asChild type="button" variant="outline" size="sm">
+                      <Link to="/wallets">Cadastrar carteira</Link>
+                    </Button>
+                  </div>
                 )}
               </div>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
+          <Card className="rounded-sm border-border/80 bg-card/80 shadow-none">
+            <CardHeader className="p-5 pb-3">
               <CardTitle>Cenario deterministico</CardTitle>
               <CardDescription>
                 Controle do MSW para validar recuperacao de falhas sem logica no
                 componente.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-5 pt-0">
               <Select
                 value={scenario}
                 onValueChange={(value) => {
@@ -466,21 +485,24 @@ function CheckoutPage() {
           </Card>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Revisao do pedido</CardTitle>
+        <Card className="self-start rounded-sm border-border/80 bg-card/80 shadow-none lg:sticky lg:top-24">
+          <CardHeader className="p-5 pb-3">
+            <CardTitle className="text-lg">Revisao do pedido</CardTitle>
             <CardDescription>
               A compra usa um snapshot de cotacao valido por 5 minutos.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 p-5 pt-0">
             <div className="space-y-3">
               {cart.items.map((item) => (
-                <div key={item.id} className="grid gap-1 rounded-lg border p-3">
-                  <span className="font-medium">{item.name}</span>
-                  <span className="text-sm text-muted-foreground">
+                <div key={item.id} className="grid grid-cols-[3.5rem_minmax(0,1fr)] gap-3 rounded-sm border border-border/70 p-2">
+                  <img src={checkoutImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" className="size-14 rounded-sm object-cover" />
+                  <div className="grid gap-1">
+                  <span className="truncate font-medium">{item.name}</span>
+                  <span className="text-xs text-muted-foreground">
                     {item.editionLabel} - {item.quantity} x {item.unitPriceEth} ETH
                   </span>
+                  </div>
                 </div>
               ))}
             </div>
