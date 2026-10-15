@@ -1,5 +1,5 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import { ImageOff, Minus, Plus, RotateCcw, Star } from 'lucide-react'
+import { ChevronLeft, ChevronRight, ImageOff, Minus, Plus, RotateCcw, ShoppingCart, Star } from 'lucide-react'
 import { useState } from 'react'
 
 import { useAddCartItem } from '@/api/hooks/useCart'
@@ -11,6 +11,8 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FavoriteButton } from '@/components/nft/favorite-button'
 import { Input } from '@/components/ui/input'
+
+import './nft-mobile.css'
 
 type NftDetailSearch = {
   scenario: MockScenario
@@ -44,6 +46,13 @@ function NftDetailsPage() {
     setFailedImages((previous) => new Set(previous).add(src))
   }
 
+  const purchaseDisabled = addCartItem.isPending || !nftQuery.data?.available || !selectedEdition || !validQuantity
+
+  function addSelectedToCart() {
+    if (!nftQuery.data || purchaseDisabled || !selectedEdition) return
+    addCartItem.mutate({ nftId: nftQuery.data.id, editionId: selectedEdition.id, quantity })
+  }
+
   return (
     <section className="nft-detail">
       <nav aria-label="Caminho de navegação" className="nft-breadcrumb">
@@ -52,6 +61,7 @@ function NftDetailsPage() {
         <Link to="/" search={defaultCatalogSearch} hash="catalogo">Mercado</Link>
       </nav>
 
+      {!nftQuery.isSuccess ? <Link to="/" search={{ ...defaultCatalogSearch, scenario }} hash="catalogo" aria-label="Voltar ao catálogo" className="nft-mobile-fallback-back"><ChevronLeft aria-hidden="true" /></Link> : null}
       {nftQuery.isLoading ? <LoadingSkeleton variant="detail" /> : null}
 
       {nftQuery.isError ? (
@@ -80,6 +90,9 @@ function NftDetailsPage() {
       {nftQuery.isSuccess ? (
         <>
         <div className="nft-product">
+          <div className="nft-mobile-topbar">
+            <Link to="/" search={{ ...defaultCatalogSearch, scenario }} hash="catalogo" aria-label="Voltar ao catálogo" className="nft-mobile-back"><ChevronLeft aria-hidden="true" /></Link>
+          </div>
           <div className="nft-gallery">
             {galleryImages.length > 0 ? (
               <div role="group" aria-label="Miniaturas do NFT" className="nft-thumbnails">
@@ -106,6 +119,14 @@ function NftDetailsPage() {
                 </div>
               )}
             </div>
+            {galleryImages.length > 1 ? (
+              <div className="nft-mobile-gallery-controls" role="group" aria-label="Navegação da galeria">
+                <button type="button" aria-label="Imagem anterior" disabled={activeImage === galleryImages[0]} onClick={() => setSelectedImageIndex(Math.max(0, galleryImages.indexOf(activeImage) - 1))}><ChevronLeft aria-hidden="true" /></button>
+                <span aria-live="polite">{galleryImages.indexOf(activeImage) + 1} / {galleryImages.length}</span>
+                <button type="button" aria-label="Próxima imagem" disabled={activeImage === galleryImages[galleryImages.length - 1]} onClick={() => setSelectedImageIndex(Math.min(galleryImages.length - 1, galleryImages.indexOf(activeImage) + 1))}><ChevronRight aria-hidden="true" /></button>
+              </div>
+            ) : null}
+
           </div>
           <div className="nft-summary">
             <h1>{nftQuery.data.name}</h1>
@@ -159,26 +180,13 @@ function NftDetailsPage() {
                   <Button
                     type="button"
                     className="nft-buy"
-                    disabled={
-                      addCartItem.isPending ||
-                      !nftQuery.data.available ||
-                      !selectedEdition || !validQuantity
-                    }
-                    onClick={() => {
-                      if (!selectedEdition || !validQuantity) {
-                        return
-                      }
-
-                      addCartItem.mutate({
-                        nftId: nftQuery.data.id,
-                        editionId: selectedEdition.id,
-                        quantity,
-                      })
-                    }}
+                    disabled={purchaseDisabled}
+                    onClick={addSelectedToCart}
                   >
-                    {addCartItem.isPending ? 'Adicionando...' : 'COMPRAR'}
+                    {addCartItem.isPending ? 'Adicionando...' : <><span className="nft-buy-desktop-label">COMPRAR</span><span className="nft-buy-mobile-label">Comprar NFT</span></>}
                   </Button>
-                <FavoriteButton nftId={nftQuery.data.id} name={nftQuery.data.name} showLabel />
+                <Button type="button" className="nft-mobile-cart" aria-label="Adicionar ao carrinho" disabled={purchaseDisabled} onClick={addSelectedToCart}><ShoppingCart aria-hidden="true" /></Button>
+                <div className="nft-favorite-placement"><FavoriteButton nftId={nftQuery.data.id} name={nftQuery.data.name} showLabel /></div>
               </div>
             </div>
             <div className="nft-purchase-feedback">

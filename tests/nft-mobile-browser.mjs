@@ -1,0 +1,87 @@
+import assert from 'node:assert/strict'
+
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
+const browser = await chromium.launch({ headless: true, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}) })
+const page = await browser.newPage({ viewport: { width: 375, height: 1000 } })
+const base = process.env.NFT_TEST_URL || 'http://127.0.0.1:5173'
+const quantity = page.getByRole('spinbutton', { name: 'Quantidade', exact: true })
+const buy = page.getByRole('button', { name: 'Comprar NFT', exact: true })
+const cart = page.getByRole('button', { name: 'Adicionar ao carrinho', exact: true })
+const api = (path) => page.evaluate(async (path) => (await (await fetch(`/api${path}`)).json()), path)
+
+try {
+  await page.goto(`${base}/nft/aurora-001`)
+  await page.getByRole('heading', { name: 'Aurora Chain #001', exact: true }).waitFor()
+  for (const width of [375, 390]) {
+    await page.setViewportSize({ width, height: 1000 })
+    assert.equal(await page.locator('header').isVisible(), false)
+    assert.equal(await page.getByRole('navigation', { name: 'Caminho de navegação' }).isVisible(), false)
+    assert.equal(await page.locator('.nft-thumbnails').isVisible(), false)
+    assert.equal(await page.locator('.nft-rating').isVisible(), false, 'Do not show an invented rating')
+    assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+    const metadata = await page.locator('.nft-metadata').boundingBox(), purchase = await buy.boundingBox()
+    assert(metadata.y + metadata.height < purchase.y)
+    const image = await page.locator('.nft-main-image').boundingBox()
+    assert(image.x >= 0 && image.x + image.width <= width)
+  }
+  assert.equal(await page.getByRole('group', { name: 'Navegação da galeria' }).count(), 0, 'Do not duplicate the single distinct image')
+  assert.equal(await page.getByRole('button', { name: '2/3', exact: true }).isDisabled(), true)
+  await quantity.fill('6')
+  assert.equal(await buy.isDisabled(), true)
+  assert.equal(await cart.isDisabled(), true)
+  await quantity.fill('1.5')
+  assert.equal(await buy.isDisabled(), true)
+  await page.getByRole('button', { name: '3/3', exact: true }).click()
+  assert.equal(await quantity.inputValue(), '1')
+  assert.equal(await page.getByRole('button', { name: 'Aumentar quantidade' }).isDisabled(), true)
+  await page.getByRole('button', { name: '1/3', exact: true }).click()
+  await page.getByRole('button', { name: 'Aumentar quantidade' }).click()
+  assert.equal(await quantity.inputValue(), '2')
+  await buy.click()
+  await page.getByRole('status').filter({ hasText: 'NFT adicionado ao carrinho.' }).waitFor()
+  assert.equal((await api('/cart')).cart.items.find((item) => item.nftId === 'aurora-001').quantity, 2)
+  const added = page.waitForResponse((response) => response.request().method() === 'POST' && response.url().includes('/api/cart/items'))
+  await cart.click()
+  await added
+  assert.equal((await api('/cart')).cart.items.find((item) => item.nftId === 'aurora-001').quantity, 4, 'Both buttons share the same purchase flow')
+
+  await page.getByRole('button', { name: 'Adicionar Aurora Chain #001 aos favoritos', exact: true }).click()
+  await page.waitForURL((url) => url.pathname === '/login')
+  await page.getByLabel('E-mail', { exact: true }).fill('ada@example.com')
+  await page.getByLabel('Senha', { exact: true }).fill('collector123')
+  await page.getByRole('main').getByRole('button', { name: 'Entrar', exact: true }).click()
+  await page.waitForURL((url) => url.pathname === '/nft/aurora-001')
+  await page.getByRole('button', { name: 'Remover Aurora Chain #001 dos favoritos', exact: true }).waitFor()
+  assert.equal(await page.getByRole('button', { name: 'Remover Aurora Chain #001 dos favoritos', exact: true }).getAttribute('aria-pressed'), 'true')
+  await page.getByRole('link', { name: 'Voltar ao catálogo', exact: true }).click()
+  await page.waitForURL((url) => url.pathname === '/' && url.hash === '#catalogo')
+  assert.equal(await page.getByRole('search', { name: 'Busca mobile de NFTs' }).isVisible(), true)
+
+  // Browser-only mock state exercises a second existing asset without changing fixtures.
+  await page.evaluate(() => localStorage.setItem('nft-marketplace.nft-state.v1', JSON.stringify({ 'aurora-001': { images: [
+    { src: '/images/nfts/nft1.png', alt: 'Imagem principal de teste', label: 'Vista principal' },
+    { src: '/nft-art/art-detail.svg', alt: 'Imagem de detalhe de teste', label: 'Detalhe' },
+  ] } })))
+  await page.goto(`${base}/nft/aurora-001`)
+  const gallery = page.getByRole('group', { name: 'Navegação da galeria' })
+  await gallery.waitFor()
+  assert.equal(await gallery.getByRole('button', { name: 'Imagem anterior' }).isDisabled(), true)
+  await gallery.getByRole('button', { name: 'Próxima imagem' }).click()
+  assert.equal(await page.locator('.nft-main-image img').getAttribute('src'), '/nft-art/art-detail.svg')
+  assert.equal(await gallery.getByRole('button', { name: 'Próxima imagem' }).isDisabled(), true)
+  await gallery.getByRole('button', { name: 'Imagem anterior' }).click()
+  assert.equal(await page.locator('.nft-main-image img').getAttribute('src'), '/images/nfts/nft1.png')
+  await page.evaluate(() => localStorage.removeItem('nft-marketplace.nft-state.v1'))
+
+  await page.goto(`${base}/nft/orbit-512`)
+  await buy.waitFor()
+  assert.equal(await buy.isDisabled(), true)
+  assert.equal(await cart.isDisabled(), true)
+  assert.equal(await quantity.isDisabled(), true)
+  await page.goto(`${base}/nft/does-not-exist`)
+  await page.getByRole('heading', { name: 'Nao foi possivel carregar o NFT' }).waitFor()
+  assert.equal(await page.getByRole('link', { name: 'Voltar ao catálogo', exact: true }).isVisible(), true)
+  console.log('PASS NFT mobile at 375/390px, real data, no overflow or fake ratings/images, edition/stock validation, shared purchase handler, favorites login intent, gallery navigation, back link and sold/not-found states')
+} finally {
+  await browser.close()
+}

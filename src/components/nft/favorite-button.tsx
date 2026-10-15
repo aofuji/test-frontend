@@ -52,7 +52,7 @@ export function FavoriteButton({ nftId, name, showLabel = false }: { nftId: stri
   return <div className="flex min-w-0 flex-col items-start gap-1">
     <Button type="button" size={showLabel ? 'default' : 'icon'} className={showLabel ? 'nft-favorite' : undefined} variant={favorite ? 'secondary' : 'outline'} onClick={toggle} disabled={session.isPending || mutation.isPending} aria-pressed={favorite} aria-label={`${favorite ? 'Remover' : 'Adicionar'} ${name} ${favorite ? 'dos' : 'aos'} favoritos`} title={favorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}>
       <Heart className={favorite ? 'fill-current' : ''} aria-hidden="true" />
-      {showLabel ? (favorite ? 'Favoritado' : 'Favoritar') : null}
+      {showLabel ? <span className="favorite-button-label">{favorite ? 'Favoritado' : 'Favoritar'}</span> : null}
     </Button>
     {error ? <span role="alert" className="max-w-40 text-xs text-destructive">{error} <button type="button" className="underline" onClick={() => { mutation.reset(); void favorites.refetch() }}>Tentar novamente</button></span> : null}
     {mutation.isSuccess ? <span role="status" className="sr-only">Favoritos atualizados.</span> : null}
