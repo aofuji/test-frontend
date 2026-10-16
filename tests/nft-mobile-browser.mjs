@@ -55,6 +55,7 @@ try {
   assert.equal(await page.getByRole('button', { name: 'Remover Aurora Chain #001 dos favoritos: Favoritado', exact: true }).getAttribute('aria-pressed'), 'true')
   await page.getByRole('link', { name: 'Voltar ao catálogo', exact: true }).click()
   await page.waitForURL((url) => url.pathname === '/' && url.hash === '#catalogo')
+  await page.getByRole('search', { name: 'Busca mobile de NFTs' }).waitFor({ state: 'visible' })
   assert.equal(await page.getByRole('search', { name: 'Busca mobile de NFTs' }).isVisible(), true)
 
   // Browser-only mock state exercises a second existing asset without changing fixtures.
@@ -70,7 +71,7 @@ try {
   assert.equal(await page.locator('.nft-main-image img').getAttribute('src'), '/nft-art/art-detail.svg')
   assert.equal(await gallery.getByRole('button', { name: 'Próxima imagem' }).isDisabled(), true)
   await gallery.getByRole('button', { name: 'Imagem anterior' }).click()
-  assert.equal(await page.locator('.nft-main-image img').getAttribute('src'), '/images/nfts/nft1.png')
+  assert.match(await page.locator('.nft-main-image img').getAttribute('src'), /\/nft1\.lossless(?:-[\w-]+)?\.webp$/)
   await page.evaluate(() => localStorage.removeItem('nft-marketplace.nft-state.v1'))
 
   await page.goto(`${base}/nft/orbit-512`)

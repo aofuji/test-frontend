@@ -4,7 +4,7 @@ import { Dialog } from "radix-ui";
 
 import { useMobileAuth } from "@/components/auth/use-mobile-auth";
 import { AuthMobileBrand, AuthMobileSwitch, AuthSocialOptions } from "./auth-mobile";
-import { LoginForm, RegisterForm } from "./auth-forms";
+import { AuthDialogFormLoader } from "./auth-dialog-form-loader";
 
 export type AuthModalMode = "login" | "register";
 
@@ -41,7 +41,7 @@ export function AuthDialog({ mode, onModeChange, onClose }: { mode: AuthModalMod
             {mode === "login" ? "Entre para gerenciar sua carteira, coleção e perfil de criador." : "Crie seu perfil de colecionador e conecte uma carteira quando quiser."}
           </p></Dialog.Description>
           <div id="auth-form-panel" role="tabpanel" aria-labelledby={mode === "login" ? "auth-login-tab" : "auth-register-tab"}>
-          {mode === "login" ? <LoginForm showSwitch={false} showPasswordToggle onSuccess={onClose} /> : <RegisterForm showSwitch={false} withPasswordConfirmation submitLabel={mobile ? "Criar perfil" : "Criar conta"} onSuccess={onClose} />}
+          <AuthDialogFormLoader mode={mode} mobile={mobile} onSuccess={onClose} />
           <AuthSocialOptions />
           <AuthMobileSwitch register={mode === "register"}><button type="button" onClick={() => onModeChange(mode === "login" ? "register" : "login")}>{mode === "login" ? "Crie uma conta" : "Entre"}</button></AuthMobileSwitch>
           </div>

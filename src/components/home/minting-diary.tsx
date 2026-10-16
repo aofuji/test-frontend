@@ -1,3 +1,4 @@
+import { getNftImageSrc, restoreNftImageFallback } from '@/features/nft/model/nft-image-variants'
 const articles = [
   {
     image: '/images/nfts/nft3.png',
@@ -43,7 +44,7 @@ export function MintingDiary() {
       <div className="grid max-w-[1144px] grid-cols-1 gap-6 sm:grid-cols-2 lg:ml-2 lg:grid-cols-4">
         {articles.map((article) => (
           <article key={article.title} className="flex min-w-0 flex-col overflow-hidden rounded-lg bg-[#281914]">
-            <img src={article.image} alt={article.alt} loading="lazy" className="aspect-[268/195] w-full object-cover" />
+            <img src={getNftImageSrc(article.image)} onError={(event) => { restoreNftImageFallback(event.currentTarget, article.image) }} alt={article.alt} loading="lazy" className="aspect-[268/195] w-full object-cover" />
             <div className="flex flex-1 flex-col gap-2 p-4">
               <p className="text-xs leading-4 text-[#b39463]">{article.date} <span aria-hidden="true" className="px-2">|</span> Leitura de {article.readingMinutes} min</p>
               <h3 className="text-base font-bold leading-[22px] text-[#f5f1eb]">{article.title}</h3>

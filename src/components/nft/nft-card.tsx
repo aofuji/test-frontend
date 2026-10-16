@@ -1,3 +1,4 @@
+import { getNftImageSrc, restoreNftImageFallback } from '@/features/nft/model/nft-image-variants'
 import { Link } from '@tanstack/react-router'
 
 import type { MockScenario, Nft } from '@/api/types/nft'
@@ -18,7 +19,7 @@ export function NFTCard({ nft, scenario }: NFTCardProps) {
         className="flex aspect-[258/300] items-center bg-[#281914] p-1 outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
       >
         {nft.images[0] ? (
-          <img src={nft.images[0].src} alt={nft.images[0].alt} loading="lazy" className="aspect-square w-full rounded-2xl object-cover" />
+          <img src={getNftImageSrc(nft.images[0].src)} onError={(event) => { restoreNftImageFallback(event.currentTarget, nft.images[0].src) }} alt={nft.images[0].alt} loading="lazy" className="aspect-square w-full rounded-2xl object-cover" />
         ) : (
           <span className="grid aspect-square w-full place-items-center rounded-2xl p-3 text-center text-sm text-muted-foreground">Imagem indisponível</span>
         )}

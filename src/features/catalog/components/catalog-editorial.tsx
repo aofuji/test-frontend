@@ -1,3 +1,4 @@
+import { getNftImageSrc, restoreNftImageFallback } from '@/features/nft/model/nft-image-variants'
 import { Link } from '@tanstack/react-router'
 import { ArrowRight } from 'lucide-react'
 
@@ -31,7 +32,7 @@ function EditorialCard({ nft, scenario, title, description, reverse = false }: {
 
     <article className="grid overflow-hidden rounded-sm border border-border bg-card sm:grid-cols-2">
 
-      <img src={nft.images[0]?.src} alt="" className={`aspect-square size-full object-cover ${reverse ? 'sm:order-2' : ''}`} />
+      <img src={getNftImageSrc(nft.images[0]?.src)} onError={(event) => { restoreNftImageFallback(event.currentTarget, nft.images[0]?.src) }} alt="" className={`aspect-square size-full object-cover ${reverse ? 'sm:order-2' : ''}`} />
 
       <div className="flex flex-col items-start justify-center gap-3 p-4 sm:p-5">
 

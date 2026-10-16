@@ -1,3 +1,4 @@
+import { getNftImageSrc, restoreNftImageFallback } from '../model/nft-image-variants'
 import { ChevronLeft, ChevronRight, ImageOff } from 'lucide-react'
 
 import type { NftImage } from '@/api/types/nft'
@@ -25,14 +26,14 @@ export function NftGallery({ nftName, galleryImages, activeImage, failedImages, 
               onClick={() => setSelectedImageIndex(index)}
               className="nft-thumbnail"
             >
-              {failedImages.has(image.src) ? <span className="grid size-full place-items-center text-xs text-muted-foreground">Sem imagem</span> : <img src={image.src} alt="" onError={() => markImageUnavailable(image.src)} className="size-full object-cover" />}
+              {failedImages.has(image.src) ? <span className="grid size-full place-items-center text-xs text-muted-foreground">Sem imagem</span> : <img src={getNftImageSrc(image.src)} alt="" onError={(event) => { if (!restoreNftImageFallback(event.currentTarget, image.src)) markImageUnavailable(image.src) }} className="size-full object-cover" />}
             </button>
           ))}
         </div>
       ) : null}
       <div className="nft-main-image">
         {activeImage && !failedImages.has(activeImage.src) ? (
-          <img src={activeImage.src} alt={activeImage.alt} onError={() => markImageUnavailable(activeImage.src)} className="size-full object-cover" />
+          <img src={getNftImageSrc(activeImage.src)} alt={activeImage.alt} onError={(event) => { if (!restoreNftImageFallback(event.currentTarget, activeImage.src)) markImageUnavailable(activeImage.src) }} className="size-full object-cover" />
         ) : (
           <div role="status" className="flex size-full flex-col items-center justify-center gap-2 p-6 text-center text-sm text-muted-foreground">
             <ImageOff aria-hidden="true" className="size-8" />Imagem indisponivel para este NFT.

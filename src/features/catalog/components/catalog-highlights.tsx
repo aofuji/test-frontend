@@ -1,3 +1,4 @@
+import { getNftImageSrc, restoreNftImageFallback } from '@/features/nft/model/nft-image-variants'
 import { Link } from '@tanstack/react-router'
 
 import type { useNfts } from '@/api/hooks/useNfts'
@@ -42,7 +43,7 @@ export function CatalogHero({ featuredQuery, scenario }: CatalogHighlightsProps)
             aria-label={`Explorar ${heroNft.name}`}
             className="block aspect-square overflow-hidden rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary"
           >
-            <img src={heroNft.images[0]?.src} alt={heroNft.images[0]?.alt ?? `Imagem de ${heroNft.name}`} className="size-full object-cover" />
+            <img src={getNftImageSrc(heroNft.images[0]?.src)} onError={(event) => { restoreNftImageFallback(event.currentTarget, heroNft.images[0]?.src) }} alt={heroNft.images[0]?.alt ?? `Imagem de ${heroNft.name}`} className="size-full object-cover" />
           </Link>
         ) : null}
         {featuredQuery.isError || (featuredQuery.isSuccess && !heroNft) ? (
@@ -52,7 +53,7 @@ export function CatalogHero({ featuredQuery, scenario }: CatalogHighlightsProps)
         ) : null}
       </div>
 
-      {promotionalNft?.images[0] ? <img src={promotionalNft.images[0].src} alt="" aria-hidden="true" className="home-hero-secondary" /> : null}
+      {promotionalNft?.images[0] ? <img src={getNftImageSrc(promotionalNft.images[0].src)} onError={(event) => { restoreNftImageFallback(event.currentTarget, promotionalNft.images[0].src) }} alt="" aria-hidden="true" className="home-hero-secondary" /> : null}
 
       {/* A referência define um único banner; os pontos são apenas decorativos. */}
       <div aria-hidden="true" className="home-hero-indicators flex justify-center gap-2 lg:absolute lg:bottom-11 lg:left-[calc(50%+20px)] lg:-translate-x-1/2">
@@ -94,7 +95,7 @@ function FeaturedNftCard({ nft, scenario }: { nft: Nft; scenario: MockScenario }
       className="block aspect-[310/366] overflow-hidden rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
     >
       {nft.images[0] ? (
-        <img src={nft.images[0].src} alt={nft.images[0].alt} loading="lazy" className="size-full object-cover" />
+        <img src={getNftImageSrc(nft.images[0].src)} onError={(event) => { restoreNftImageFallback(event.currentTarget, nft.images[0].src) }} alt={nft.images[0].alt} loading="lazy" className="size-full object-cover" />
       ) : (
         <span className="grid size-full place-items-center p-5 text-center text-sm text-[#b39463]">Imagem indisponível</span>
       )}

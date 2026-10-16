@@ -1,3 +1,4 @@
+import { getNftImageSrc, restoreNftImageFallback } from '@/features/nft/model/nft-image-variants'
 import { Link } from '@tanstack/react-router'
 
 import type { useNfts } from '@/api/hooks/useNfts'
@@ -21,7 +22,7 @@ export function NftCollection({ collectionQuery, scenario, setCollectionPage }: 
           {collectionQuery.data.items.map((item) => (
             <Link key={item.id} to="/nft/$nftId" params={{ nftId: item.id }} search={{ scenario }} className="group min-w-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-primary">
               <div className="nft-collection-image">
-                {item.images[0] ? <img src={item.images[0].src} alt={item.images[0].alt} className="size-full object-cover transition duration-300 group-hover:scale-105" /> : <span className="grid size-full place-items-center text-xs text-muted-foreground">Imagem indisponível</span>}
+                {item.images[0] ? <img src={getNftImageSrc(item.images[0].src)} onError={(event) => { restoreNftImageFallback(event.currentTarget, item.images[0].src) }} alt={item.images[0].alt} className="size-full object-cover transition duration-300 group-hover:scale-105" /> : <span className="grid size-full place-items-center text-xs text-muted-foreground">Imagem indisponível</span>}
               </div>
               <p className="mt-3 text-sm leading-tight">{item.name}</p>
               <p className="font-mono text-base font-bold leading-tight text-primary">{item.priceEth} ETH</p>

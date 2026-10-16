@@ -65,6 +65,9 @@ try {
       await page.keyboard.press('Enter')
       const dialog = page.getByRole('dialog')
       await dialog.getByRole('button', { name: 'Fechar', exact: true }).waitFor()
+      // Enumerate the loaded form's controls, not a list changing during import.
+      // The production loading suite checks the trap while the chunk is held.
+      await dialog.getByLabel('E-mail', { exact: true }).waitFor()
       await checkTrap(page, dialog)
       await focusIsVisible(dialog.getByRole('button', { name: 'Fechar', exact: true }))
       await dialog.getByRole('tab', { name: 'Entrar', exact: true }).focus()
