@@ -1,10 +1,9 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
 
-import { LoginForm } from '@/components/auth/auth-forms'
-import { AuthMobileBrand, AuthMobileSwitch, AuthSocialOptions } from '@/components/auth/auth-mobile'
+import { LoginForm } from '@/features/auth/components/auth-forms'
+import { AuthMobileSwitch, AuthSocialOptions } from '@/features/auth/components/auth-mobile'
 import { useMobileAuth } from '@/components/auth/use-mobile-auth'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AuthShell } from '@/features/auth/components/auth-shell'
 
 type LoginSearch = {
   redirect?: string
@@ -40,18 +39,3 @@ export const Route = createFileRoute('/login')({
   }),
   component: LoginPage,
 })
-
-function AuthShell({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
-  return (
-    <section className="auth-route grid min-h-[65svh] place-items-center py-8">
-      <AuthMobileBrand />
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-2 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
-          <CardTitle className="text-3xl"><h1>{title}</h1></CardTitle>
-        </CardHeader>
-        <CardContent>{children}</CardContent>
-      </Card>
-    </section>
-  )
-}

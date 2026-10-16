@@ -1,10 +1,9 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
-import type { ReactNode } from 'react'
 
-import { RegisterForm } from '@/components/auth/auth-forms'
-import { AuthMobileBrand, AuthMobileSwitch, AuthSocialOptions } from '@/components/auth/auth-mobile'
+import { RegisterForm } from '@/features/auth/components/auth-forms'
+import { AuthMobileSwitch, AuthSocialOptions } from '@/features/auth/components/auth-mobile'
 import { useMobileAuth } from '@/components/auth/use-mobile-auth'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { AuthShell } from '@/features/auth/components/auth-shell'
 
 type RegisterSearch = {
   redirect?: string
@@ -15,7 +14,7 @@ function RegisterPage() {
   const mobile = useMobileAuth()
 
   return (
-    <AuthShell eyebrow="Cadastro" title="Criar conta">
+    <AuthShell eyebrow="Cadastro" title={<><span className="auth-desktop-title">Criar conta</span><span className="auth-mobile-title">Criar perfil de colecionador</span></>} className="auth-route-register">
       <RegisterForm
         redirect={redirect}
         withPasswordConfirmation={mobile}
@@ -41,18 +40,3 @@ export const Route = createFileRoute('/register')({
   }),
   component: RegisterPage,
 })
-
-function AuthShell({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
-  return (
-    <section className="auth-route auth-route-register grid min-h-[65svh] place-items-center py-8">
-      <AuthMobileBrand />
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-2 text-center">
-          <p className="text-sm font-semibold uppercase tracking-[0.18em] text-primary">{eyebrow}</p>
-          <CardTitle className="text-3xl"><h1><span className="auth-desktop-title">{title}</span><span className="auth-mobile-title">Criar perfil de colecionador</span></h1></CardTitle>
-        </CardHeader>
-        <CardContent>{children}</CardContent>
-      </Card>
-    </section>
-  )
-}

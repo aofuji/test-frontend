@@ -1,138 +1,16 @@
-import { Link, createFileRoute, useLocation } from '@tanstack/react-router'
+import { createFileRoute, useLocation } from '@tanstack/react-router'
 
-import { ArrowRight,  RotateCcw} from 'lucide-react'
-
-import { useEffect, useState } from 'react'
-
-import { useNfts } from '../api/hooks/useNfts'
-import { useCatalogInventory, useCatalogNfts, type PriceRange } from '@/components/catalog/use-catalog-nfts'
-
-import type {
-
-  MockScenario,
-
-  Nft,
-
-  NftAvailabilityFilter,
-
-  NftListParams,
-
-  NftSortOption,
-
-} from '../api/types/nft'
-
-import {
-
-  FilterPanel,
-
-  type CatalogFilterState,
-
-} from '@/components/catalog/filter-panel'
-
-import { Pagination } from '@/components/catalog/pagination'
-import { SortSelect } from '@/components/catalog/sort-select'
-
-
-import { NFTGrid } from '@/components/nft/nft-grid'
-import { MintingDiary } from '@/components/home/minting-diary'
-import { HomeMobilePanel } from '@/components/home/home-mobile-panel'
-import { useFavorites } from '@/api/hooks/useFavorites'
-import { useSession } from '@/api/hooks/useAuth'
-
-import { LoadingSkeleton } from '@/components/shared/loading-skeleton'
-
-
-import { Button } from '@/components/ui/button'
-
-import { Card, CardContent } from '@/components/ui/card'
-
-import { Skeleton } from '@/components/ui/skeleton'
-
-type CatalogSearch = PriceRange & {
-
-  q?: string
-
-  category?: string
-
-  chain?: string
-
-  availability: NftAvailabilityFilter
-
-  sort: NftSortOption
-
-  page: number
-
-  scenario: MockScenario
-
-}
-
-const pageSize = 9
+import type { MockScenario, NftAvailabilityFilter, NftSortOption } from '@/api/types/nft'
+import { CatalogPage } from '@/features/catalog/components/catalog-page'
+import { defaultCatalogSearch } from '@/features/catalog/model/defaults'
+import type { CatalogFilterState, CatalogSearch, PriceRange } from '@/features/catalog/model/types'
 
 function HomePage() {
-
   const search = Route.useSearch()
-
   const navigate = Route.useNavigate()
   const hash = useLocation({ select: (location) => location.hash })
-  const session = useSession()
-  const favorites = useFavorites()
-  const [mobileLayout, setMobileLayout] = useState(() => window.matchMedia('(max-width: 639px)').matches)
 
-
-  const [filtersOpen, setFiltersOpen] = useState(() => window.matchMedia('(min-width: 64rem)').matches)
-
-  const params: NftListParams = {
-
-    search: search.q,
-
-    category: search.category,
-
-    chain: search.chain,
-
-    availability: search.availability,
-
-    sort: search.sort,
-
-    page: search.page,
-
-    pageSize,
-
-    scenario: search.scenario,
-
-  }
-
-  const nftsQuery = useCatalogNfts(params, { minPrice: search.minPrice, maxPrice: search.maxPrice })
-  const inventoryQuery = useCatalogInventory(search.scenario)
-
-  const featuredQuery = useNfts({
-
-    featuredOnly: true,
-
-    page: 1,
-
-    pageSize: 3,
-
-    sort: 'newest',
-
-    scenario: search.scenario,
-
-  })
-
-  useEffect(() => {
-
-    const desktop = window.matchMedia('(min-width: 64rem)')
-
-    const mobile = window.matchMedia('(max-width: 639px)')
-    const updateFilterVisibility = () => { setFiltersOpen(desktop.matches); setMobileLayout(mobile.matches) }
-
-    desktop.addEventListener('change', updateFilterVisibility)
-    mobile.addEventListener('change', updateFilterVisibility)
-
-    return () => { desktop.removeEventListener('change', updateFilterVisibility); mobile.removeEventListener('change', updateFilterVisibility) }
-
-  }, [])
-
-  function updateFilters(patch: Partial<CatalogSearch | CatalogFilterState>) {
+  function updateFilters(patch: Partial<CatalogFilterState>, mobileLayout: boolean) {
 
     void navigate({
 
@@ -149,227 +27,20 @@ function HomePage() {
 
   }
 
-  const heroNft = featuredQuery.data?.items[0]
-  const promotionalNft = featuredQuery.data?.items[1] ?? heroNft
-  const favoriteNfts = inventoryQuery.data?.filter((nft) => favorites.data?.includes(nft.id)) ?? []
+  function closePanel() {
+    void navigate({ search: (previous) => previous, hash: '', replace: true })
+  }
 
   return (
-
-    <div className="figma-home space-y-10 pb-8 sm:space-y-12">
-
-      <section aria-label="Apresentação da Kurio" className="home-hero relative grid items-start gap-6 py-3 lg:mx-2 lg:grid-cols-[minmax(0,1fr)_450px] lg:gap-8 lg:pb-0 lg:pt-[3px]">
-        <div className="home-hero-copy min-w-0 lg:pl-10 lg:pt-10">
-          <p className="mb-4 text-sm font-semibold tracking-[0.12em] text-[#f5f1eb]">Bem-vindo à Kurio</p>
-          <h1 className="text-3xl font-bold uppercase leading-tight sm:text-4xl lg:text-4xl lg:leading-[1.6] xl:text-[44px]">
-            <span className="home-hero-mobile-title">Seja dono da cultura digital</span>
-            <span className="block">Seja dono do futuro</span>
-            <span className="block">da arte digital</span>
-          </h1>
-          <p className="mt-4 max-w-[550px] text-sm leading-6 text-[#b39463] lg:mt-0">
-            <span className="home-hero-mobile-description">Descubra NFTs selecionados de criadores do mundo todo.</span>
-            <span className="home-hero-desktop-description">Descubra NFTs selecionados de criadores emergentes e consagrados. Colecione arte digital rara, apoie artistas e tenha uma parte da cultura da internet.</span>
-          </p>
-          <Button asChild className="mt-8 h-10 w-[140px] rounded-md bg-[#d28a4c] px-7 text-sm font-bold uppercase text-[#190f0b] hover:bg-[#d28a4c]/90">
-            <a href="#catalogo">Explorar</a>
-          </Button>
-        </div>
-
-        <div className="home-hero-art mx-auto w-full max-w-[450px] lg:justify-self-end">
-          {featuredQuery.isLoading ? <Skeleton className="aspect-square w-full rounded-3xl" /> : null}
-          {heroNft ? (
-            <Link
-              to="/nft/$nftId"
-              params={{ nftId: heroNft.id }}
-              search={{ scenario: search.scenario }}
-              aria-label={`Explorar ${heroNft.name}`}
-              className="block aspect-square overflow-hidden rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            >
-              <img src={heroNft.images[0]?.src} alt={heroNft.images[0]?.alt ?? `Imagem de ${heroNft.name}`} className="size-full object-cover" />
-            </Link>
-          ) : null}
-          {featuredQuery.isError || (featuredQuery.isSuccess && !heroNft) ? (
-            <div className="grid aspect-square place-items-center rounded-3xl border border-dashed border-primary/30 bg-card p-8 text-center text-sm text-muted-foreground">
-              A obra em destaque não está disponível neste momento.
-            </div>
-          ) : null}
-        </div>
-
-        {promotionalNft?.images[0] ? <img src={promotionalNft.images[0].src} alt="" aria-hidden="true" className="home-hero-secondary" /> : null}
-
-        {/* A referência define um único banner; os pontos são apenas decorativos. */}
-        <div aria-hidden="true" className="home-hero-indicators flex justify-center gap-2 lg:absolute lg:bottom-11 lg:left-[calc(50%+20px)] lg:-translate-x-1/2">
-          <span className="size-2 rounded-full bg-[#d28a4c]" />
-          <span className="size-2 rounded-full bg-[#d28a4c]" />
-          <span className="size-2 rounded-full bg-[#d28a4c]" />
-        </div>
-      </section>
-
-      <section id="catalogo" aria-label="Catálogo de NFTs" className="grid grid-cols-[minmax(0,1fr)] items-start gap-x-8 gap-y-7 scroll-mt-24 lg:grid-cols-[17rem_minmax(0,1fr)] xl:grid-cols-[310px_minmax(0,1fr)] xl:gap-x-12">
-          <h2 className="sr-only">Catálogo de NFTs</h2>
-
-          <div className="home-catalog-tools flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:justify-between lg:col-start-2">
-            <div className="flex items-center gap-4 overflow-x-auto text-xs font-normal leading-6 sm:text-sm" role="group" aria-label="Visualização do catálogo">
-              <button type="button" aria-pressed={search.availability === 'all' && search.sort === 'newest'} className={search.availability === 'all' && search.sort === 'newest' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ availability: 'all', sort: 'newest' })}>Todos os NFTs</button>
-              <button type="button" aria-pressed={search.sort === 'newest' && search.availability !== 'all'} className={search.sort === 'newest' && search.availability !== 'all' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'newest' })}>Novos lançamentos</button>
-              <button type="button" aria-pressed={search.sort === 'price-desc'} className={search.sort === 'price-desc' ? 'whitespace-nowrap border-b-2 border-primary pb-1 text-primary' : 'whitespace-nowrap border-b-2 border-transparent pb-1 text-muted-foreground hover:text-foreground'} onClick={() => updateFilters({ sort: 'price-desc' })}>Em alta</button>
-            </div>
-            <div className="home-catalog-sort self-end sm:shrink-0">
-              <SortSelect value={search.sort} onChange={(sort) => updateFilters({ sort })} />
-            </div>
-          </div>
-
-          <aside aria-label="Filtros do catálogo" className="home-catalog-sidebar min-w-0 lg:col-start-1 lg:row-start-1 lg:row-span-2">
-
-            <details open={filtersOpen} onToggle={(event) => setFiltersOpen(event.currentTarget.open)} className="group bg-[#281914] p-4 lg:p-5">
-
-              <summary className="flex cursor-pointer list-none items-center justify-between font-bold uppercase tracking-wide marker:content-none lg:hidden">
-
-                Filtros e ordenação
-
-                <span aria-hidden="true" className="text-primary transition group-open:rotate-45">+</span>
-
-              </summary>
-
-              <div className="mt-5 border-t border-border pt-5 lg:mt-0 lg:border-0 lg:pt-0">
-
-                {!mobileLayout ? <FilterPanel value={search} onChange={updateFilters} items={inventoryQuery.data ?? []} loading={inventoryQuery.isPending} error={inventoryQuery.isError} onRetry={() => void inventoryQuery.refetch()} /> : null}
-
-              </div>
-
-            </details>
-
-            <section aria-labelledby="featured-heading" className="mx-auto mt-6 w-full max-w-[310px] bg-[#281914] bg-[radial-gradient(ellipse_at_top_right,rgba(179,148,99,0.16),transparent_65%)] pt-6">
-              <h2 id="featured-heading" className="px-5 text-2xl font-bold uppercase leading-7 text-[#d28a4c]">NFT em destaque</h2>
-              <p className="mb-2 mt-3 text-center text-2xl font-bold uppercase leading-7 text-[#f5f1eb]">Oferta limitada</p>
-              {featuredQuery.isLoading ? <Skeleton className="aspect-[310/366] w-full rounded-3xl" /> : null}
-              {featuredQuery.isError ? (
-                <div className="space-y-3 p-5 text-sm text-[#b39463]">
-                  <p role="alert">Não foi possível carregar o destaque.</p>
-                  <Button type="button" variant="outline" className="w-full rounded-sm" onClick={() => void featuredQuery.refetch()}>Tentar novamente</Button>
-                </div>
-              ) : null}
-              {featuredQuery.isSuccess && !promotionalNft ? <p className="p-5 text-sm text-[#b39463]">Nenhum NFT em destaque disponível.</p> : null}
-              {promotionalNft ? <FeaturedNftCard nft={promotionalNft} scenario={search.scenario} /> : null}
-            </section>
-
-          </aside>
-
-          <div className="home-catalog-results grid min-w-0 gap-5 lg:col-start-2 lg:row-start-2">
-
-            <div role="status" className="sr-only">
-
-              <span>
-
-                {nftsQuery.data ? `${nftsQuery.data.total} NFTs encontrados` : 'Consultando acervo'}
-
-                {nftsQuery.isFetching && !nftsQuery.isLoading ? ' · Atualizando' : ''}
-
-              </span>
-
-            </div>
-
-            {nftsQuery.isLoading ? <LoadingSkeleton /> : null}
-
-            {nftsQuery.isError ? <StateCard title="Nao foi possivel carregar os NFTs" description={nftsQuery.error.message} action={<Button type="button" onClick={() => void nftsQuery.refetch()}><RotateCcw aria-hidden="true" />Tentar novamente</Button>} /> : null}
-
-            {nftsQuery.isSuccess && nftsQuery.data.items.length === 0 ? <StateCard title="Nenhum NFT encontrado" description="Ajuste a busca ou os filtros para ver outros resultados." /> : null}
-
-            {nftsQuery.data && nftsQuery.data.items.length > 0 ? (
-
-              <>
-
-                <NFTGrid nfts={nftsQuery.data.items} scenario={search.scenario} />
-
-                <Pagination page={nftsQuery.data.page} totalPages={nftsQuery.data.totalPages} onPageChange={updatePage} />
-
-              </>
-
-            ) : null}
-
-          </div>
-
-      </section>
-
-      {featuredQuery.data && featuredQuery.data.items.length >= 2 ? (
-
-        <section aria-label="Conteúdo complementar" className="grid gap-3 lg:grid-cols-2">
-
-          <EditorialCard nft={featuredQuery.data.items[0]} scenario={search.scenario} title="Lançamentos gênesis de edição limitada" description="Conheça edições escassas diretamente dos criadores antes da revelação pública." />
-
-          <EditorialCard nft={featuredQuery.data.items[2] ?? featuredQuery.data.items[1]} scenario={search.scenario} title="Arte digital selecionada e muito mais" description="Explore artistas, coleções verificadas e obras digitais que definem a cultura atual." reverse />
-
-        </section>
-
-      ) : null}
-
-      <MintingDiary />
-      {mobileLayout ? (
-        <>
-          <HomeMobilePanel open={hash === 'filtros'} onClose={() => void navigate({ search: (previous) => previous, hash: '', replace: true })} title="Filtros e ordenação" triggerId="home-mobile-filters">
-            <div className="mb-6"><SortSelect value={search.sort} onChange={(sort) => updateFilters({ sort })} /></div>
-            <FilterPanel value={search} onChange={updateFilters} items={inventoryQuery.data ?? []} loading={inventoryQuery.isPending} error={inventoryQuery.isError} onRetry={() => void inventoryQuery.refetch()} />
-          </HomeMobilePanel>
-          <HomeMobilePanel open={hash === 'favoritos'} onClose={() => void navigate({ search: (previous) => previous, hash: '', replace: true })} title="Favoritos" triggerId="home-mobile-favorites">
-            {session.isPending || (session.data && (favorites.isPending || inventoryQuery.isPending)) ? <LoadingSkeleton count={2} /> : null}
-            {!session.isPending && !session.data ? <p className="text-sm">Entre para acessar seus favoritos. <Link to="/login" search={{ redirect: '/#favoritos' }} className="text-primary underline">Entrar</Link></p> : null}
-            {session.data && (favorites.isError || inventoryQuery.isError) ? <p role="alert" className="text-sm">Não foi possível carregar os favoritos. <button type="button" className="underline" onClick={() => { void favorites.refetch(); void inventoryQuery.refetch() }}>Tentar novamente</button></p> : null}
-            {session.data && favorites.isSuccess && inventoryQuery.isSuccess ? (
-              favoriteNfts.length ? <NFTGrid nfts={favoriteNfts} scenario={search.scenario} /> : <p className="text-sm text-muted-foreground">Você ainda não tem NFTs favoritos. Use o coração nos detalhes de um NFT para salvá-lo.</p>
-            ) : null}
-          </HomeMobilePanel>
-        </>
-      ) : null}
-
-
-    </div>
-
-  )
-
-}
-
-function FeaturedNftCard({ nft, scenario }: { nft: Nft; scenario: MockScenario }) {
-  return (
-    <Link
-      to="/nft/$nftId"
-      params={{ nftId: nft.id }}
-      search={{ scenario }}
-      aria-label={`Explorar NFT em destaque: ${nft.name}`}
-      className="block aspect-[310/366] overflow-hidden rounded-3xl outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-inset"
-    >
-      {nft.images[0] ? (
-        <img src={nft.images[0].src} alt={nft.images[0].alt} loading="lazy" className="size-full object-cover" />
-      ) : (
-        <span className="grid size-full place-items-center p-5 text-center text-sm text-[#b39463]">Imagem indisponível</span>
-      )}
-    </Link>
+    <CatalogPage
+      search={search}
+      hash={hash}
+      onFiltersChange={updateFilters}
+      onPageChange={updatePage}
+      onClosePanel={closePanel}
+    />
   )
 }
-
-function EditorialCard({ nft, scenario, title, description, reverse = false }: { nft: Nft; scenario: MockScenario; title: string; description: string; reverse?: boolean }) {
-
-  return (
-
-    <article className="grid overflow-hidden rounded-sm border border-border bg-card sm:grid-cols-2">
-
-      <img src={nft.images[0]?.src} alt="" className={`aspect-square size-full object-cover ${reverse ? 'sm:order-2' : ''}`} />
-
-      <div className="flex flex-col items-start justify-center gap-3 p-4 sm:p-5">
-
-        <h3 className="text-sm font-bold leading-snug sm:text-base">{title}</h3>
-
-        <p className="text-xs leading-5 text-muted-foreground">{description}</p>
-
-        <Button asChild variant="link" className="h-auto p-0 font-bold"><Link to="/nft/$nftId" params={{ nftId: nft.id }} search={{ scenario }}>Explorar <ArrowRight aria-hidden="true" /></Link></Button>
-
-      </div>
-
-    </article>
-
-  )
-
-}
-
-
 
 export const Route = createFileRoute('/')({
 
@@ -421,52 +92,24 @@ function getPage(value: unknown) {
 
   const page = Number(value)
 
-  return Number.isFinite(page) && page > 0 ? Math.floor(page) : 1
+  return Number.isFinite(page) && page > 0 ? Math.floor(page) : defaultCatalogSearch.page
 
 }
 
 function getAvailability(value: unknown): NftAvailabilityFilter {
 
-  return value === 'available' || value === 'sold' ? value : 'all'
+  return value === 'available' || value === 'sold' ? value : defaultCatalogSearch.availability
 
 }
 
 function getSort(value: unknown): NftSortOption {
 
-  return value === 'price-asc' || value === 'price-desc' || value === 'name-asc' ? value : 'newest'
+  return value === 'price-asc' || value === 'price-desc' || value === 'name-asc' ? value : defaultCatalogSearch.sort
 
 }
 
 function getScenario(value: unknown): MockScenario {
 
-  return value === 'latency' || value === 'error' || value === 'empty' ? value : 'normal'
-
-}
-
-type StateCardProps = { title: string; description: string; action?: React.ReactNode }
-
-function StateCard({ title, description, action }: StateCardProps) {
-
-  return (
-
-    <Card className="rounded-sm border border-dashed border-primary/30 bg-card">
-
-      <CardContent className="grid min-h-52 place-items-center p-8 text-center">
-
-        <div className="max-w-md space-y-4">
-
-          <h2 className="text-2xl font-bold tracking-tight">{title}</h2>
-
-          <p className="text-muted-foreground">{description}</p>
-
-          {action}
-
-        </div>
-
-      </CardContent>
-
-    </Card>
-
-  )
+  return value === 'latency' || value === 'error' || value === 'empty' ? value : defaultCatalogSearch.scenario
 
 }

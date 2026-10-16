@@ -1,18 +1,10 @@
 import { useId, useState } from 'react'
 import { Slider } from 'radix-ui'
 
-import type { MockScenario, Nft, NftAvailabilityFilter, NftSortOption } from '@/api/types/nft'
+import type { Nft, NftAvailabilityFilter } from '@/api/types/nft'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import type { PriceRange } from './use-catalog-nfts'
-
-export type CatalogFilterState = PriceRange & {
-  category?: string
-  chain?: string
-  availability: NftAvailabilityFilter
-  sort: NftSortOption
-  scenario: MockScenario
-}
+import type { CatalogFilterState, PriceRange } from '@/features/catalog/model/types'
 
 type FilterPanelProps = {
   value: CatalogFilterState

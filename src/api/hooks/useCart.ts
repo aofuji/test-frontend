@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 
 import {
   addCartItem,
@@ -10,6 +10,7 @@ import {
 } from '../cart'
 import { queryKeys } from '../queryKeys'
 import { useSession } from './useAuth'
+import { usePrivateMutation } from './usePrivateMutation'
 import type {
   AddCartItemRequest,
   Cart,
@@ -39,7 +40,7 @@ export function useAddCartItem() {
   const queryClient = useQueryClient()
   const cartKey = useCartKey()
 
-  return useMutation({
+  return usePrivateMutation({
     mutationKey: queryKeys.cart.all,
     scope: { id: 'cart-session' },
     onMutate: () => queryClient.cancelQueries({ queryKey: cartKey }),
@@ -54,7 +55,7 @@ export function useUpdateCartItem() {
   const queryClient = useQueryClient()
   const cartKey = useCartKey()
 
-  return useMutation({
+  return usePrivateMutation({
     mutationKey: queryKeys.cart.all,
     scope: { id: 'cart-session' },
     mutationFn: ({
@@ -98,7 +99,7 @@ export function useRemoveCartItem() {
   const queryClient = useQueryClient()
   const cartKey = useCartKey()
 
-  return useMutation({
+  return usePrivateMutation({
     mutationKey: queryKeys.cart.all,
     scope: { id: 'cart-session' },
     onMutate: () => queryClient.cancelQueries({ queryKey: cartKey }),
@@ -113,7 +114,7 @@ export function useApplyCartCoupon() {
   const queryClient = useQueryClient()
   const cartKey = useCartKey()
 
-  return useMutation({
+  return usePrivateMutation({
     mutationKey: queryKeys.cart.all,
     scope: { id: 'cart-session' },
     onMutate: () => queryClient.cancelQueries({ queryKey: cartKey }),
@@ -131,7 +132,7 @@ export function useCreateQuote() {
   const queryClient = useQueryClient()
   const cartKey = useCartKey()
 
-  return useMutation({
+  return usePrivateMutation({
     mutationKey: queryKeys.cart.all,
     scope: { id: 'cart-session' },
     onMutate: () => queryClient.cancelQueries({ queryKey: cartKey }),

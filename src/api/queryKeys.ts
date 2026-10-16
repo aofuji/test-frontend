@@ -5,7 +5,7 @@ export const queryKeys = {
     all: ['auth'] as const,
     session: () => [...queryKeys.auth.all, 'session'] as const,
     private: () => [...queryKeys.auth.all, 'private'] as const,
-    profile: () => [...queryKeys.auth.private(), 'profile'] as const,
+    profile: (userId: string | undefined) => [...queryKeys.auth.private(), 'profile', userId] as const,
   },
   nfts: {
     all: ['nfts'] as const,
@@ -20,12 +20,12 @@ export const queryKeys = {
   },
   wallets: {
     all: () => [...queryKeys.auth.private(), 'wallets'] as const,
-    list: () => [...queryKeys.wallets.all(), 'list'] as const,
+    list: (userId: string | undefined) => [...queryKeys.wallets.all(), 'list', userId] as const,
   },
   orders: {
     all: () => [...queryKeys.auth.private(), 'orders'] as const,
-    list: () => [...queryKeys.orders.all(), 'list'] as const,
-    detail: (orderId: string) => [...queryKeys.orders.all(), 'detail', orderId] as const,
+    list: (userId: string | undefined) => [...queryKeys.orders.all(), 'list', userId] as const,
+    detail: (orderId: string, userId: string | undefined) => [...queryKeys.orders.all(), 'detail', orderId, userId] as const,
   },
   favorites: {
     all: () => [...queryKeys.auth.private(), 'favorites'] as const,

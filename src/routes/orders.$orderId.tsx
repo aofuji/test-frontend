@@ -1,8 +1,14 @@
 import { Link, createFileRoute } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { CircleAlert, CircleCheck, Clock3, MailCheck, X } from 'lucide-react'
 
+import { defaultCatalogSearch } from '@/features/catalog/model/defaults'
+import { getNftImage } from '@/features/nft/model/nft-image'
 import { useOrder } from '@/api/hooks/useOrders'
+import { getOrderByAttempt } from '@/api/orders'
+import { capturePrivateSession } from '@/api/privateSession'
+import { attemptMatchesOrder, clearAttempt, readAttempt } from '@/features/checkout/model/checkout-attempt'
 import { useSession } from '@/api/hooks/useAuth'
 import { ApiError } from '@/api/http/errors'
 import type { PaymentStatus } from '@/api/types/order'
@@ -16,32 +22,33 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 import './order-receipt.css'
 
-const orderImageByNftId: Record<string, string> = {
-  'aurora-001': '/images/nfts/nft1.png', 'block-bloom-155': '/images/nfts/nft1.png',
-  'solar-thread-019': '/images/nfts/nft2.png', 'glass-house-071': '/images/nfts/nft2.png', 'mono-mask-008': '/images/nfts/nft2.png',
-  'orbit-512': '/images/nfts/nft3.png', 'vault-echo-300': '/images/nfts/nft3.png', 'byte-relic-009': '/images/nfts/nft3.png',
-  'neon-204': '/images/nfts/nft4.png', 'terra-117': '/images/nfts/nft4.png', 'pixel-reef-044': '/images/nfts/nft4.png', 'midnight-frame-026': '/images/nfts/nft4.png',
-}
-
 function OrderDetailsPage() {
   const { orderId } = Route.useParams()
+  const queryClient = useQueryClient()
   const orderQuery = useOrder(orderId)
   const order = orderQuery.data
   const userId = useSession().data?.user.id
 
   useEffect(() => {
     if (order?.status !== 'confirmed' || !userId) return
-    try {
-      const raw = localStorage.getItem('nft-marketplace.checkout-attempt.v1')
-      if (!raw) return
-      const attempt = JSON.parse(raw) as { userId?: string; quoteId?: string }
-      if (attempt.userId === userId && attempt.quoteId === order.quoteId) {
-        localStorage.removeItem('nft-marketplace.checkout-attempt.v1')
+    const attempt = readAttempt(userId)
+    if (!attempt || !attemptMatchesOrder(attempt, order)) return
+    const session = capturePrivateSession(queryClient)
+    let active = true
+    void (async () => {
+      try {
+        // Metadata alone cannot distinguish a later attempt for the same quote.
+        const resolved = await getOrderByAttempt(attempt.key)
+        if (active && session.isCurrent() && resolved.id === order.id &&
+            resolved.status === 'confirmed' && attemptMatchesOrder(attempt, resolved)) {
+          clearAttempt(attempt)
+        }
+      } catch {
+        // An uncertain correlation or unavailable storage must not hide a receipt.
       }
-    } catch {
-      // A malformed local attempt must not hide a valid receipt.
-    }
-  }, [order?.status, order?.quoteId, userId])
+    })()
+    return () => { active = false }
+  }, [order, userId, queryClient])
 
   if (orderQuery.isLoading) {
     return (
@@ -80,7 +87,7 @@ function OrderDetailsPage() {
   return (
     <section className="order-receipt-page">
       <article className="order-receipt" aria-labelledby="order-receipt-heading">
-        <Link to="/" search={catalogSearch} className="order-receipt-close" aria-label="Fechar recibo">
+        <Link to="/" search={defaultCatalogSearch} className="order-receipt-close" aria-label="Fechar recibo">
           <X aria-hidden="true" />
         </Link>
         <header className="order-receipt-header">
@@ -110,7 +117,7 @@ function OrderDetailsPage() {
             {order.items.map((item) => (
               <div key={item.id} className="order-receipt-item">
                 <div className="order-receipt-item-info">
-                  <img src={orderImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" />
+                  <img src={getNftImage(item.nftId)} alt="" />
                   <div>
                     <h3>{item.name}</h3>
                     <p>{item.editionLabel} · {item.chain}</p>
@@ -132,7 +139,7 @@ function OrderDetailsPage() {
           <footer className="order-receipt-footer">
             <p>Rede: {order.network}.</p>
             <Button asChild>
-              <Link to="/" search={catalogSearch}>Fechar recibo e voltar ao catálogo</Link>
+              <Link to="/" search={defaultCatalogSearch}>Fechar recibo e voltar ao catálogo</Link>
             </Button>
           </footer>
         </div>
@@ -199,10 +206,3 @@ export const Route = createFileRoute('/orders/$orderId')({
   beforeLoad: ({ context, location }) => context.auth.ensureSession(location),
   component: OrderDetailsPage,
 })
-
-const catalogSearch = {
-  availability: 'all',
-  sort: 'newest',
-  page: 1,
-  scenario: 'normal',
-} as const

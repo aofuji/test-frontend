@@ -4,8 +4,7 @@ import Decimal from 'decimal.js'
 import { getNfts } from '@/api/nfts'
 import { queryKeys } from '@/api/queryKeys'
 import type { MockScenario, NftListParams } from '@/api/types/nft'
-
-export type PriceRange = { minPrice?: number; maxPrice?: number }
+import type { PriceRange } from '@/features/catalog/model/types'
 
 async function getAllNfts(params: NftListParams, signal: AbortSignal) {
   const first = await getNfts({ ...params, page: 1, pageSize: 100 }, signal)

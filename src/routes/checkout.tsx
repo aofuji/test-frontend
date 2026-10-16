@@ -1,9 +1,8 @@
-import Decimal from 'decimal.js'
-import { Link, createFileRoute, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, RefreshCw, ShieldCheck, WalletCards } from 'lucide-react'
-import type { ReactNode } from 'react'
-import { useEffect, useState } from 'react'
+import { Link, createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
+import { RefreshCw } from 'lucide-react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
+import { defaultCatalogSearch } from '@/features/catalog/model/defaults'
 import { getSession } from '@/api/auth'
 import { getQuote } from '@/api/cart'
 import { getOrderByAttempt } from '@/api/orders'
@@ -16,55 +15,40 @@ import type { Quote } from '@/api/types/cart'
 import type { OrderScenario } from '@/api/types/order'
 import type { WalletNetwork } from '@/api/types/wallet'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { CheckoutCollectorFields } from '@/features/checkout/components/checkout-collector-fields'
+import { CheckoutDevelopmentControls } from '@/features/checkout/components/checkout-development-controls'
+import { CheckoutMobileHeading } from '@/features/checkout/components/checkout-mobile-heading'
+import { CheckoutLoading, CheckoutStateCard } from '@/features/checkout/components/checkout-states'
+import { CheckoutSummary } from '@/features/checkout/components/checkout-summary'
+import { CheckoutWalletFields } from '@/features/checkout/components/checkout-wallet-fields'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Input } from '@/components/ui/input'
-
-import { Skeleton } from '@/components/ui/skeleton'
+  checkoutSubmittedAttemptKey,
+  clearAttempt,
+  persistAttempt,
+  readAttempt,
+  readAttemptSnapshot,
+  readSubmittedAttempt,
+  type CheckoutAttempt,
+} from '@/features/checkout/model/checkout-attempt'
 import { nftNoticeEvent } from '@/realtime/useRealtime'
 import type { NftUpdatedEvent } from '@/api/types/realtime'
 
 import './checkout.css'
 import './checkout-mobile.css'
 
-const checkoutAttemptKey = 'nft-marketplace.checkout-attempt.v1'
-const checkoutImageByNftId: Record<string, string> = {
-  'aurora-001': '/images/nfts/nft1.png',
-  'block-bloom-155': '/images/nfts/nft1.png',
-  'solar-thread-019': '/images/nfts/nft2.png',
-  'glass-house-071': '/images/nfts/nft2.png',
-  'mono-mask-008': '/images/nfts/nft2.png',
-  'orbit-512': '/images/nfts/nft3.png',
-  'vault-echo-300': '/images/nfts/nft3.png',
-  'byte-relic-009': '/images/nfts/nft3.png',
-  'neon-204': '/images/nfts/nft4.png',
-  'terra-117': '/images/nfts/nft4.png',
-  'pixel-reef-044': '/images/nfts/nft4.png',
-  'midnight-frame-026': '/images/nfts/nft4.png',
-}
-
-type CheckoutAttempt = {
-  userId: string
-  quoteId: string
-  key: string
-  walletId: string
-  network: WalletNetwork
-  scenario: OrderScenario
-}
-
 function CheckoutPage() {
   const navigate = useNavigate()
+  const router = useRouter()
   const sessionQuery = useSession()
   const cartQuery = useCart()
   const walletsQuery = useWallets()
   const quoteMutation = useCreateQuote()
   const orderMutation = useCreateOrder()
+  const operationOwner = useRef<symbol | null>(null)
+  const actionInProgress = useRef(false)
+  const selectionLock = useRef(false)
+  const submittedAttempt = useRef<Readonly<CheckoutAttempt> | null>(null)
+  const [selectionLocked, setSelectionLocked] = useState(false)
   const [quote, setQuote] = useState<Quote | null>(null)
   const [selectedWalletId, setSelectedWalletId] = useState('')
   const [reviewOpen, setReviewOpen] = useState(false)
@@ -75,6 +59,29 @@ function CheckoutPage() {
   const [recoveryPending, setRecoveryPending] = useState(true)
   const [recoveryError, setRecoveryError] = useState(false)
   const userId = sessionQuery.data?.user.id
+
+  useLayoutEffect(() => {
+    // A fresh identity for every setup also invalidates work from StrictMode's
+    // setup/cleanup/setup replay and from the previous authenticated user.
+    const owner = Symbol('checkout')
+    operationOwner.current = owner
+    actionInProgress.current = false
+    return () => {
+      if (operationOwner.current === owner) operationOwner.current = null
+    }
+  }, [userId])
+
+  const createOperation = useCallback(() => {
+    const owner = operationOwner.current
+    let snapshot = readAttemptSnapshot()
+    const ownsView = () => owner !== null && operationOwner.current === owner &&
+      router.latestLocation.pathname.replace(/\/+$/, '') === '/checkout'
+    return {
+      ownsView,
+      isCurrent: () => ownsView() && readAttemptSnapshot() === snapshot,
+      recordOwnWrite: () => { snapshot = readAttemptSnapshot() },
+    }
+  }, [router])
 
   useEffect(() => {
     function onNftUpdated(raw: Event) {
@@ -92,26 +99,42 @@ function CheckoutPage() {
   useEffect(() => {
     if (!userId) return
     let active = true
+    const operation = createOperation()
     const attempt = readAttempt(userId)
+    let unresolvedSubmission = Boolean(readSubmittedAttempt(userId))
 
     async function recover() {
       if (!attempt) {
-        if (active) setRecoveryPending(false)
+        if (active && operation.isCurrent()) {
+          submittedAttempt.current = null
+          lockSelection(false)
+          setRecoveryPending(false)
+        }
         return
       }
 
       try {
         const order = await getOrderByAttempt(attempt.key)
-        if (!active) return
+        if (!active || !operation.isCurrent()) return
         if (order.status !== 'declined') {
-          if (order.status === 'confirmed') clearAttempt(userId!)
+          if (order.status === 'confirmed') {
+            clearAttempt(attempt)
+            operation.recordOwnWrite()
+          }
           void navigate({ to: '/orders/$orderId', params: { orderId: order.id } })
           return
         }
-        clearAttempt(userId!)
+        // A declined order resolves the submitted attempt. A missing order
+        // does not establish whether the original POST will complete.
+        unresolvedSubmission = false
+        submittedAttempt.current = null
+        lockSelection(false)
+        clearAttempt(attempt)
+        operation.recordOwnWrite()
       } catch (error) {
+        if (!active || !operation.isCurrent()) return
         if (!(error instanceof ApiError && error.status === 404)) {
-          if (active) {
+          if (active && operation.isCurrent()) {
             setStatusMessage(getErrorMessage(error))
             setStatusIsError(true)
             setRecoveryError(true)
@@ -123,15 +146,18 @@ function CheckoutPage() {
 
       try {
         const restoredQuote = await getQuote(attempt.quoteId)
-        if (!active) return
+        if (!active || !operation.isCurrent()) return
         setQuote(restoredQuote)
         setSelectedWalletId(attempt.walletId)
         setNetwork(attempt.network)
         setScenario(attempt.scenario)
+        submittedAttempt.current = readSubmittedAttempt(userId!)
+        lockSelection(Boolean(submittedAttempt.current))
       } catch (error) {
-        if (active) {
-          if (error instanceof ApiError && error.status === 404) {
-            clearAttempt(userId!)
+        if (active && operation.isCurrent()) {
+          if (error instanceof ApiError && error.status === 404 && !unresolvedSubmission) {
+            clearAttempt(attempt)
+            operation.recordOwnWrite()
           } else {
             setRecoveryError(true)
           }
@@ -139,13 +165,13 @@ function CheckoutPage() {
           setStatusIsError(true)
         }
       } finally {
-        if (active) setRecoveryPending(false)
+        if (active && operation.isCurrent()) setRecoveryPending(false)
       }
     }
 
     void recover()
     return () => { active = false }
-  }, [navigate, userId])
+  }, [createOperation, navigate, userId])
 
   const wallets = walletsQuery.data ?? []
   const selectedWallet =
@@ -161,57 +187,47 @@ function CheckoutPage() {
     selectedWallet?.status === 'connected',
   )
 
+  function lockSelection(locked: boolean) {
+    selectionLock.current = locked
+    setSelectionLocked(locked)
+  }
+
   function selectWallet(walletId: string) {
+    if (selectionLock.current) return
     setSelectedWalletId(walletId)
     setQuote(null)
-    clearAttempt(userId)
+    clearAttempt(userId ? readAttempt(userId) : null)
     const wallet = wallets.find((candidate) => candidate.id === walletId)
     if (wallet) setNetwork(wallet.network)
   }
 
-  async function ensureActiveSession() {
+  async function ensureActiveSession(isCurrent: () => boolean) {
     try {
       const session = await getSession()
+      if (!isCurrent()) return false
       if (!session || session.user.id !== userId) throw new Error('Sessao expirada.')
       return true
     } catch {
-      void navigate({ to: '/login', search: { redirect: '/checkout' } })
+      if (isCurrent()) void navigate({ to: '/login', search: { redirect: '/checkout' } })
       return false
     }
   }
 
   async function handleQuote() {
-    setStatusMessage('')
-    setStatusIsError(false)
-    if (!userId || !(await ensureActiveSession())) return
-
+    if (actionInProgress.current || submittedAttempt.current) return
+    const operation = createOperation()
+    if (!operation.isCurrent()) return
+    actionInProgress.current = true
     try {
-      const nextQuote = await quoteMutation.mutateAsync({
-        scenario: scenario === 'price-change' ? 'price-change' : undefined,
-      })
-      setQuote(nextQuote)
-      persistAttempt({
-        userId,
-        quoteId: nextQuote.id,
-        walletId: selectedWallet?.id ?? '',
-        network,
-        scenario,
-      })
-      setStatusMessage('Cotacao atualizada. Revise os valores antes de confirmar.')
-    } catch (error) {
-      setStatusMessage(getErrorMessage(error))
-      setStatusIsError(true)
-      if (error instanceof ApiError && error.status === 401) {
-        void navigate({ to: '/login', search: { redirect: '/checkout' } })
-      }
-    }
-  }
+      setStatusMessage('')
+      setStatusIsError(false)
+      if (!userId || !(await ensureActiveSession(operation.isCurrent)) || !operation.isCurrent()) return
 
-  async function handleConfirm() {
-    if (!userId || !(await ensureActiveSession())) return
-    if (!quote || !selectedWallet) {
       try {
-        const nextQuote = await quoteMutation.mutateAsync({})
+        const nextQuote = await quoteMutation.mutateAsync({
+          scenario: scenario === 'price-change' ? 'price-change' : undefined,
+        })
+        if (!operation.isCurrent()) return
         setQuote(nextQuote)
         persistAttempt({
           userId,
@@ -220,88 +236,129 @@ function CheckoutPage() {
           network,
           scenario,
         })
-        setStatusMessage(
-          'Cotacao inicial gerada. Clique novamente para confirmar a compra.',
-        )
+        operation.recordOwnWrite()
+        setStatusMessage('Cotacao atualizada. Revise os valores antes de confirmar.')
       } catch (error) {
+        if (!operation.isCurrent()) return
         setStatusMessage(getErrorMessage(error))
         setStatusIsError(true)
+        if (error instanceof ApiError && error.status === 401) {
+          void navigate({ to: '/login', search: { redirect: '/checkout' } })
+        }
       }
-      return
+    } finally {
+      if (operation.ownsView()) actionInProgress.current = false
     }
+  }
 
-    const idempotencyKey = persistAttempt({
-      userId,
-      quoteId: quote.id,
-      walletId: selectedWallet.id,
-      network,
-      scenario,
-    })
-    setStatusMessage('')
-    setStatusIsError(false)
-
+  async function handleConfirm() {
+    if (actionInProgress.current) return
+    const operation = createOperation()
+    if (!operation.isCurrent()) return
+    actionInProgress.current = true
+    lockSelection(true)
+    const selection = Object.freeze({ walletId: selectedWallet?.id ?? '', network, scenario })
+    const quoteId = quote?.id
+    const resumedAttempt = submittedAttempt.current?.userId === userId ? submittedAttempt.current : null
     try {
-      const order = await orderMutation.mutateAsync({
-        quoteId: quote.id,
-        walletId: selectedWallet.id,
-        network,
-        idempotencyKey,
-        scenario,
+      if (!userId || !(await ensureActiveSession(operation.isCurrent)) || !operation.isCurrent()) return
+      if (!resumedAttempt && (!quoteId || !selection.walletId)) {
+        try {
+          const nextQuote = await quoteMutation.mutateAsync({})
+          if (!operation.isCurrent()) return
+          setQuote(nextQuote)
+          persistAttempt({ userId, quoteId: nextQuote.id, ...selection })
+          operation.recordOwnWrite()
+          setStatusMessage(
+            'Cotacao inicial gerada. Clique novamente para confirmar a compra.',
+          )
+        } catch (error) {
+          if (!operation.isCurrent()) return
+          setStatusMessage(getErrorMessage(error))
+          setStatusIsError(true)
+        }
+        return
+      }
+
+      const context = resumedAttempt ?? { userId, quoteId: quoteId!, ...selection }
+      const attempt = Object.freeze({
+        ...context,
+        key: resumedAttempt?.key ?? persistAttempt(context),
       })
+      operation.recordOwnWrite()
+      setStatusMessage('')
+      setStatusIsError(false)
 
-      if (order.status === 'confirmed') {
-        clearAttempt(userId)
-        await navigate({
-          to: '/orders/$orderId',
-          params: { orderId: order.id },
+      try {
+        // Persist only the correlation before submitting. Recovery still uses
+        // the existing order lookup and quote restoration, in the same order.
+        localStorage.setItem(checkoutSubmittedAttemptKey, attempt.key)
+        submittedAttempt.current = attempt
+        operation.recordOwnWrite()
+        const order = await orderMutation.mutateAsync({
+          quoteId: attempt.quoteId,
+          walletId: attempt.walletId,
+          network: attempt.network,
+          idempotencyKey: attempt.key,
+          scenario: attempt.scenario,
         })
-        return
-      }
 
-      if (order.status === 'pending') {
-        await navigate({ to: '/orders/$orderId', params: { orderId: order.id } })
-        return
-      }
+        if (!operation.isCurrent()) return
+        if (order.status === 'confirmed') {
+          submittedAttempt.current = null
+          clearAttempt(attempt)
+          operation.recordOwnWrite()
+          await navigate({
+            to: '/orders/$orderId',
+            params: { orderId: order.id },
+          })
+          return
+        }
 
-      clearAttempt(userId)
-      setQuote(null)
-      setStatusMessage(
-        order.failureReason ??
-          'Pagamento recusado. O carrinho foi preservado para nova tentativa.',
-      )
-    } catch (error) {
-      setStatusMessage(getErrorMessage(error))
-      setStatusIsError(true)
+        if (order.status === 'pending') {
+          await navigate({ to: '/orders/$orderId', params: { orderId: order.id } })
+          return
+        }
 
-      if (error instanceof ApiError && error.status === 401) {
-        void navigate({ to: '/login', search: { redirect: '/checkout' } })
-      } else if (
-        error instanceof ApiError &&
-        error.status !== undefined &&
-        error.code !== 'ORDER_SERVICE_UNAVAILABLE'
-      ) {
+        submittedAttempt.current = null
+        clearAttempt(attempt)
+        operation.recordOwnWrite()
         setQuote(null)
-        clearAttempt(userId)
+        setStatusMessage(
+          order.failureReason ??
+            'Pagamento recusado. O carrinho foi preservado para nova tentativa.',
+        )
+      } catch (error) {
+        if (!operation.isCurrent()) return
+        setStatusMessage(getErrorMessage(error))
+        setStatusIsError(true)
+
+        if (error instanceof ApiError && error.status === 401) {
+          void navigate({ to: '/login', search: { redirect: '/checkout' } })
+        } else if (
+          error instanceof ApiError &&
+          error.status !== undefined &&
+          error.code !== 'ORDER_SERVICE_UNAVAILABLE'
+        ) {
+          submittedAttempt.current = null
+          setQuote(null)
+          clearAttempt(attempt)
+          operation.recordOwnWrite()
+        }
       }
+    } finally {
+      if (operation.isCurrent()) lockSelection(Boolean(submittedAttempt.current))
+      if (operation.ownsView()) actionInProgress.current = false
     }
   }
 
   if (isLoading) {
-    return (
-      <section className="checkout-page checkout-loading" aria-label="Carregando checkout" aria-busy="true">
-        <CheckoutMobileHeading />
-        <Skeleton className="h-10 w-64" />
-        <div className="checkout-layout">
-          <Skeleton className="h-96" />
-          <Skeleton className="h-80" />
-        </div>
-      </section>
-    )
+    return <CheckoutLoading />
   }
 
   if (recoveryError) {
     return (
-      <StateCard
+      <CheckoutStateCard
         title="Nao foi possivel recuperar a tentativa"
         description={statusMessage}
         action={<Button type="button" onClick={() => window.location.reload()}>Tentar novamente</Button>}
@@ -311,7 +368,7 @@ function CheckoutPage() {
 
   if (error) {
     return (
-      <StateCard
+      <CheckoutStateCard
         title="Nao foi possivel carregar o checkout"
         description={getErrorMessage(error)}
         action={<Button onClick={() => { void cartQuery.refetch(); void walletsQuery.refetch() }}>Tentar novamente</Button>}
@@ -321,12 +378,12 @@ function CheckoutPage() {
 
   if (!cart || cart.items.length === 0) {
     return (
-      <StateCard
+      <CheckoutStateCard
         title="Seu carrinho esta vazio"
         description="Adicione um NFT antes de iniciar o checkout."
         action={
           <Button asChild>
-            <Link to="/" search={{ availability: 'all', sort: 'newest', page: 1, scenario: 'normal' }}>
+            <Link to="/" search={defaultCatalogSearch}>
               Voltar ao catalogo
             </Link>
           </Button>
@@ -339,9 +396,9 @@ function CheckoutPage() {
     <section className="checkout-page" data-review-open={reviewOpen}>
       <CheckoutMobileHeading />
       <nav className="checkout-breadcrumb" aria-label="Caminho de navegação">
-        <Link to="/" search={catalogSearch}>Início</Link>
+        <Link to="/" search={defaultCatalogSearch}>Início</Link>
         <span aria-hidden="true">/</span>
-        <Link to="/" search={catalogSearch} hash="catalogo">Mercado</Link>
+        <Link to="/" search={defaultCatalogSearch} hash="catalogo">Mercado</Link>
         <span aria-hidden="true">/</span>
         <span aria-current="page">Pagamento</span>
       </nav>
@@ -349,297 +406,71 @@ function CheckoutPage() {
 
       <div className="checkout-layout">
         <div className="checkout-collector">
-          <section aria-labelledby="checkout-profile-heading" className="checkout-profile-fields">
-            <h2 id="checkout-profile-heading">Perfil do colecionador</h2>
-            <div className="checkout-fields">
-              <label>
-                Nome de exibição
-                <Input value={sessionQuery.data?.user.name ?? ''} readOnly autoComplete="name" />
-              </label>
-              <label>
-                E-mail
-                <Input value={sessionQuery.data?.user.email ?? ''} readOnly autoComplete="email" />
-              </label>
-            </div>
-          </section>
+          <CheckoutCollectorFields
+            name={sessionQuery.data?.user.name ?? ''}
+            email={sessionQuery.data?.user.email ?? ''}
+          />
 
-          <section aria-labelledby="checkout-wallet-heading" className="checkout-wallet-fields">
-            <div className="checkout-mobile-wallet-heading">
-              <h2>{selectedWallet?.status === 'connected' ? 'Carteira conectada' : 'Carteiras cadastradas'}</h2>
-              <Link to="/wallets">{wallets.length ? 'Trocar carteira' : 'Cadastrar carteira'}</Link>
-            </div>
-            <fieldset className="checkout-mobile-wallets">
-              <legend className="sr-only">Carteiras cadastradas</legend>
-              {wallets.map((wallet) => (
-                <label key={wallet.id} className="checkout-mobile-wallet-option">
-                  <input type="radio" name="checkout-wallet" value={wallet.id} checked={selectedWallet?.id === wallet.id} onChange={() => selectWallet(wallet.id)} aria-label={`${wallet.label}, ${wallet.network}`} />
-                  <span>
-                    <strong>{wallet.label}</strong>
-                    <span title={wallet.address}>{wallet.address.slice(0, 6)}…{wallet.address.slice(-4)}</span>
-                    <span>Rede {wallet.network}</span>
-                    {wallet.status !== 'connected' ? <span className="text-destructive">Desconectada</span> : null}
-                  </span>
-                </label>
-              ))}
-            </fieldset>
-            <h2 id="checkout-wallet-heading">Carteira e rede</h2>
-            <div className="checkout-fields">
-              <label className="checkout-wallet-select">
-                Carteira
-                <Select
-                  value={selectedWallet?.id ?? ''}
-                  onValueChange={selectWallet}
-                >
-                  <SelectTrigger aria-label="Carteira do pedido" className="h-10 w-full">
-                    <SelectValue placeholder="Selecione" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {wallets.map((wallet) => (
-                      <SelectItem key={wallet.id} value={wallet.id}>
-                        {wallet.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </label>
-              <label>
-                Rede
-                <Select
-                  value={network}
-                  onValueChange={(value) => {
-                    setNetwork(value as WalletNetwork)
-                    setQuote(null)
-                    clearAttempt(userId)
-                  }}
-                >
-                  <SelectTrigger aria-label="Rede do pedido" className="h-10 w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ethereum">Ethereum</SelectItem>
-                    <SelectItem value="polygon">Polygon</SelectItem>
-                    <SelectItem value="base">Base</SelectItem>
-                  </SelectContent>
-                </Select>
-              </label>
-              {selectedWallet ? (
-                <label className="checkout-address">
-                  Endereço da carteira
-                  <Input value={selectedWallet.address} readOnly />
-                </label>
-              ) : null}
-            </div>
-            {selectedWallet && selectedWallet.status !== 'connected' ? (
-              <p role="alert" className="checkout-wallet-alert">
-                Carteira desconectada. Conecte-a em Carteiras para continuar.
-              </p>
-            ) : null}
-            {!selectedWallet ? <p className="checkout-wallet-alert">Cadastre uma carteira para continuar.</p> : null}
-            <Link to="/wallets" className="checkout-manage-wallet">{selectedWallet ? 'Gerenciar carteiras' : 'Cadastrar carteira'}</Link>
-          </section>
+          <CheckoutWalletFields
+            wallets={wallets}
+            selectedWallet={selectedWallet}
+            network={network}
+            disabled={selectionLocked}
+            onWalletChange={selectWallet}
+            onNetworkChange={(value) => {
+              if (selectionLock.current) return
+              setNetwork(value as WalletNetwork)
+              setQuote(null)
+              clearAttempt(userId ? readAttempt(userId) : null)
+            }}
+          />
 
           {import.meta.env.DEV || import.meta.env.MODE === 'test' ? (
-            <details className="checkout-development">
-              <summary>Ferramentas de desenvolvimento</summary>
-              <div className="checkout-development-content">
-                <h2>Cenario deterministico</h2>
-                <p>Controle do MSW para testes de confirmação e recuperação de falhas.</p>
-                <Select
-                  value={scenario}
-                  onValueChange={(value) => {
-                    setScenario(value as OrderScenario)
-                    setQuote(null)
-                    clearAttempt(userId)
-                  }}
-                >
-                  <SelectTrigger aria-label="Cenario do pedido" className="h-10 w-full sm:w-80">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="confirmed">Pagamento confirmado</SelectItem>
-                    <SelectItem value="pending">Pedido pendente</SelectItem>
-                    <SelectItem value="declined">Pagamento recusado</SelectItem>
-                    <SelectItem value="timeout-before-create">
-                      Timeout antes do pedido
-                    </SelectItem>
-                    <SelectItem value="timeout-after-create">
-                      Timeout apos criar pedido
-                    </SelectItem>
-                    <SelectItem value="quote-expired">Cotacao expirada</SelectItem>
-                    <SelectItem value="price-change">Alteracao de preco</SelectItem>
-                    <SelectItem value="sold-out">NFT esgotado</SelectItem>
-                    <SelectItem value="session-expired">Sessao expirada</SelectItem>
-                    <SelectItem value="error">Erro HTTP 500</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </details>
+            <CheckoutDevelopmentControls
+              scenario={scenario}
+              disabled={selectionLocked}
+              onScenarioChange={(value) => {
+                if (selectionLock.current) return
+                setScenario(value as OrderScenario)
+                setQuote(null)
+                clearAttempt(userId ? readAttempt(userId) : null)
+              }}
+            />
           ) : null}
         </div>
 
-        <section className="checkout-summary" aria-labelledby="checkout-summary-heading">
-          <button type="button" className="checkout-mobile-review-toggle" aria-expanded={reviewOpen} aria-controls="checkout-review-items" onClick={() => setReviewOpen((current) => !current)}>{reviewOpen ? 'Ocultar resumo do pedido' : 'Revisar pedido'}</button>
-          <h2 id="checkout-summary-heading">Seus NFTs</h2>
-          <div className="checkout-summary-columns" aria-hidden="true"><span>NFTs</span><span>Subtotal</span></div>
-          <div id="checkout-review-items" className="checkout-nfts">
-            {cart.items.map((item) => (
-              <div key={item.id} className="checkout-nft">
-                <img src={checkoutImageByNftId[item.nftId] ?? '/images/nfts/nft1.png'} alt="" />
-                <div className="checkout-nft-info">
-                  <h3>{item.name}</h3>
-                  <p>{item.editionLabel} · {item.quantity} × {item.unitPriceEth} ETH</p>
-                </div>
-                <p className="checkout-nft-total">{new Decimal(item.unitPriceEth).mul(item.quantity).toString()} ETH</p>
-              </div>
-            ))}
-          </div>
-          {cart.coupon ? <p className="checkout-coupon">Cupom aplicado: {cart.coupon.code} · {cart.coupon.label}</p> : null}
-          <Totals
-            subtotal={cart.totals.subtotalEth}
-            discount={cart.totals.discountEth}
-            fee={cart.totals.networkFeeEth}
-            total={cart.totals.totalEth}
-          />
-          <div className="checkout-selected-wallet">
-            <h2>Carteira e rede</h2>
-            {selectedWallet ? (
-              <div className="checkout-wallet-card">
-                <WalletCards aria-hidden="true" />
-                <div>
-                  <p>{selectedWallet.label}</p>
-                  <span>{network} · {selectedWallet.status === 'connected' ? 'Conectada' : 'Desconectada'}</span>
-                </div>
-              </div>
-            ) : <Link to="/wallets">Cadastrar carteira</Link>}
-          </div>
-          {quote ? (
-            <p className="checkout-quote">
-              <ShieldCheck aria-hidden="true" />
-              Cotação válida até {formatDate(quote.expiresAt)}
-            </p>
-          ) : null}
-          {statusMessage ? (
-            <p role={statusIsError ? 'alert' : 'status'} className={`checkout-feedback${statusIsError ? ' checkout-feedback-error' : ''}`}>
-              {statusMessage}
-            </p>
-          ) : null}
-          <div className="checkout-actions">
-            <Button
-              variant="outline"
-              onClick={() => void handleQuote()}
-              disabled={quoteMutation.isPending || orderMutation.isPending}
-            >
-              <RefreshCw className="size-4" aria-hidden="true" />
-              {quoteMutation.isPending ? 'Atualizando...' : 'Revalidar cotacao'}
-            </Button>
-            <Button
-              className="checkout-confirm"
-              onClick={() => void handleConfirm()}
-              disabled={!canCheckout || orderMutation.isPending || quoteMutation.isPending}
-            >
-              {orderMutation.isPending ? 'Confirmando...' : 'Confirmar compra'}
-            </Button>
-          </div>
-        </section>
+        <CheckoutSummary
+          cart={cart}
+          selectedWallet={selectedWallet}
+          network={network}
+          reviewOpen={reviewOpen}
+          onToggleReview={() => setReviewOpen((current) => !current)}
+          quoteExpiration={quote ? formatDate(quote.expiresAt) : null}
+          statusMessage={statusMessage}
+          statusIsError={statusIsError}
+          actions={
+            <div className="checkout-actions">
+              <Button
+                variant="outline"
+                onClick={() => void handleQuote()}
+                disabled={selectionLocked || quoteMutation.isPending || orderMutation.isPending}
+              >
+                <RefreshCw className="size-4" aria-hidden="true" />
+                {quoteMutation.isPending ? 'Atualizando...' : 'Revalidar cotacao'}
+              </Button>
+              <Button
+                className="checkout-confirm"
+                onClick={() => void handleConfirm()}
+                disabled={!canCheckout || orderMutation.isPending || quoteMutation.isPending}
+              >
+                {orderMutation.isPending ? 'Confirmando...' : 'Confirmar compra'}
+              </Button>
+            </div>
+          }
+        />
       </div>
     </section>
   )
-}
-
-function CheckoutMobileHeading() {
-  return (
-    <div className="checkout-mobile-heading">
-      <Link to="/cart" aria-label="Voltar ao carrinho"><ChevronLeft aria-hidden="true" /></Link>
-      <h1>Pagamento com carteira</h1>
-    </div>
-  )
-}
-
-function Totals({
-  subtotal,
-  discount,
-  fee,
-  total,
-}: {
-  subtotal: string
-  discount: string
-  fee: string
-  total: string
-}) {
-  return (
-    <dl className="checkout-totals">
-      <TotalRow label="Subtotal" value={`${subtotal} ETH`} />
-      <TotalRow label="Desconto" value={`-${discount} ETH`} />
-      <TotalRow label="Taxa de rede" value={`${fee} ETH`} />
-      <TotalRow label="Total" value={`${total} ETH`} strong />
-    </dl>
-  )
-}
-
-function TotalRow({
-  label,
-  value,
-  strong,
-}: {
-  label: string
-  value: string
-  strong?: boolean
-}) {
-  return (
-    <div className={strong ? 'checkout-total-final' : undefined}>
-      <dt>{label}</dt>
-      <dd>{value}</dd>
-    </div>
-  )
-}
-
-function StateCard({
-  title,
-  description,
-  action,
-}: {
-  title: string
-  description: string
-  action: ReactNode
-}) {
-  return (
-    <section className="checkout-page checkout-state grid min-h-[55svh] place-items-center">
-      <CheckoutMobileHeading />
-      <Card className="max-w-xl">
-        <CardContent className="space-y-5 p-8">
-          <h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
-          <p className="text-muted-foreground">{description}</p>
-          {action}
-        </CardContent>
-      </Card>
-    </section>
-  )
-}
-
-function readAttempt(userId: string): CheckoutAttempt | null {
-  try {
-    const raw = localStorage.getItem(checkoutAttemptKey)
-    if (!raw) return null
-    const parsed = JSON.parse(raw) as CheckoutAttempt
-    return parsed.userId === userId && parsed.quoteId && parsed.key ? parsed : null
-  } catch {
-    return null
-  }
-}
-
-function persistAttempt(input: Omit<CheckoutAttempt, 'key'>) {
-  const existing = readAttempt(input.userId)
-  const key = existing?.quoteId === input.quoteId &&
-    existing.walletId === input.walletId &&
-    existing.network === input.network
-    ? existing.key
-    : `checkout-${crypto.randomUUID()}`
-  localStorage.setItem(checkoutAttemptKey, JSON.stringify({ ...input, key }))
-  return key
-}
-
-function clearAttempt(userId?: string) {
-  if (!userId || readAttempt(userId)) localStorage.removeItem(checkoutAttemptKey)
 }
 
 function getErrorMessage(error: unknown) {
@@ -659,10 +490,3 @@ export const Route = createFileRoute('/checkout')({
   beforeLoad: ({ context, location }) => context.auth.ensureSession(location),
   component: CheckoutPage,
 })
-
-const catalogSearch = {
-  availability: 'all',
-  sort: 'newest',
-  page: 1,
-  scenario: 'normal',
-} as const

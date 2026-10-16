@@ -1,8 +1,9 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { getFavorites, setFavorite } from '../favorites'
 import { queryKeys } from '../queryKeys'
 import type { FavoriteMutation } from '../types/favorites'
 import { useSession } from './useAuth'
+import { usePrivateMutation } from './usePrivateMutation'
 
 export function useFavorites() {
   const session = useSession()
@@ -18,7 +19,7 @@ export function useSetFavorite() {
   const session = useSession()
   const queryClient = useQueryClient()
   const key = queryKeys.favorites.list(session.data?.user.id ?? 'anonymous')
-  return useMutation({
+  return usePrivateMutation({
     mutationKey: queryKeys.favorites.all(),
     scope: { id: 'favorites' },
     mutationFn: ({ nftId, favorite, scenario }: FavoriteMutation) => setFavorite(nftId, favorite, scenario),
